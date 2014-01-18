@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% module Template("fleet_form.html", legend="Ваш флот", action="save", submit="Сохранить", fleet=fleet) %}
+
+<br/>
+
+{% if fleet['queue'] %}
+<h4>Очередь ({{ len(fleet['queue']) }} человек):</h4>
+
+<ul>
+{% for character in fleet['queue'] %}
+<li>{{ character }}</li>
+{% end %}
+</ul>
+{% else %}
+<p>Очередь в этот флот пуста.</p>
+{% end %}
+
+{% end %}

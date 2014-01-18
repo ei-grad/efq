@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<form method="POST" class="form-inline">
+  <legend>Авторизоваться под другим пользователем</legend>
+  <input type="hidden" name="action" value="fake_character" />
+  <div class="form-group">
+    <input type="text" class="form-control" name="character" />
+  </div>
+  <div class="form-group">
+    <button type="submit" class="btn btn-default">Авторизоваться</button>
+  </div>
+</form>
+{% end %}

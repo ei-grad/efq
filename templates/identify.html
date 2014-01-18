@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block content %}
+<p>Напишите в канал RAISA Shield следующий текст:</p>
+<pre>{{ session['key'] }}</pre>
+<form method=POST>
+  <button class="btn" type="submit">Готово!</button>
+</form>
+{% block msg %}{% end %}
+{% end %}

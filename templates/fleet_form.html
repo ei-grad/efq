@@ -1,0 +1,40 @@
+{% set fleet = globals().get('fleet', None) or {
+  'level': None,
+  'ts_channel': None,
+  'solar_system': '',
+} %}
+
+<form method='POST' class="form-inline">
+  <legend>{{ legend }}</legend>
+  {% module xsrf_form_html() %}
+  <input type='hidden' name='action' value='{{ action }}' />
+  <div class="form-group">
+    <select name='level' class='form-control'>
+      {% for level in ['Vanguard (10)', 'Assault (20)', 'HQ (40)'] %}
+      <option value='{{ level }}'{% if fleet['level'] == level %} selected{% end %}>{{ level }}</option>
+      {% end %}
+    </select>
+  </div>
+  <div class="form-group">
+    <select name='ts_channel' class='form-control'>
+      {% for i in ['Shield-Флот 1',
+                   'Shield-Флот 2',
+                   'Shield-Флот 3',
+                   'Shield-Флот 4',
+                   'Shield-Флот 5',
+                   'Armor-Флот 1',
+                   'Armor-Флот 2',
+                   'PvP-Флот 1'] %}
+      <option value='{{ i }}'{% if fleet['ts_channel'] == i %} selected{% end %}>{{ i }}</option>
+      {% end %}
+    </select>
+  </div>
+  <div class="form-group">
+    <input class='form-control' type='text' name='solar_system'
+           placeholder="Система (необязательно)"
+           value='{{ fleet['solar_system'] }}' />
+  </div>
+  <div class="form-group">
+    <button type="submit" class="btn btn-default">{{ submit }}</button>
+  </div>
+</form>
