@@ -23,6 +23,7 @@
           <a class="navbar-brand" href="/">EVE Online Fleet Queue</a>
         </div>
         <ul class="nav navbar-nav navbar-right">
+          <li><a href="/admin">Админка</a></li>
           <li><a href="#">Персонаж: {{ session.get('character', 'Неизвестен') }}</a></li>
         </ul>
       </div>
@@ -38,6 +39,9 @@
 
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="{{ static_url('js/bootstrap.min.js') }}"></script>
+
+    {% block addjs %}
+    {% end %}
 
   </body>
 </html>

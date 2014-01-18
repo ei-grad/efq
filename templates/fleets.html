@@ -9,7 +9,7 @@
   count=len(fleet['queue']),
   **fleet
   ) }}
-  <form class="form-inline" method="POST">
+  <form class="form-inline" method="POST" action="join">
     {% module xsrf_form_html() %}
     <input type='hidden' name='action' value='join' />
     <input type='hidden' name='fc' value='{{ fleet['fc'] }}' />
@@ -25,7 +25,6 @@
 
 <br/>
 
-{% module Template("fleet_form.html", legend="Новый флот",
-                   action="new", submit="Создать") %}
+{% module FleetForm(legend="Новый флот", action="", submit="Создать") %}
 
 {% end %}
