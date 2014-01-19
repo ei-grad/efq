@@ -5,7 +5,8 @@ import logging
 from functools import wraps
 import re, os, binascii
 
-from tornado import gen, ioloop, web, httpclient, stack_context, options
+from tornado import gen, ioloop, web, httpclient, stack_context
+from tornado.options import options, define, parse_command_line
 from tornado.httputil import urlencode
 
 
@@ -45,6 +46,7 @@ class Character(object):
         self.name = name
         self.fleet = None
         self.is_fc = False
+        self.is_admin = name in ADMINS
         self.callbacks = []
 
     def refresh(self):
@@ -281,11 +283,13 @@ class SaveHandler(BaseHandler):
 def admin_required(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        return func(self, *args, **kwargs)
-        #if self.character.name in ADMINS:
-        #    return func(self, *args, **kwargs)
-        #else:
-        #    self.send_error(403)
+        if options.devel:
+            return func(self, *args, **kwargs)
+        else:
+            if self.character.name in ADMINS:
+                return func(self, *args, **kwargs)
+            else:
+                self.send_error(403)
     return wrapper
 
 
@@ -391,14 +395,18 @@ application = web.Application(
     xsrf_token=True,
 )
 
+define('devel', type=bool, default=False)
+
 
 if __name__ == "__main__":
-    options.parse_command_line()
-    application.listen(8888)
-    get_fleet(
-        get_character(u'Mia Cloks'),
-        'Vilur',
-        'Shield-Флот 1',
-        'HQ (40)'
-    ).enqueue(get_character(u'Zwo Zateki'))
+    define('port', type=int, default=8888)
+    parse_command_line()
+    application.listen(options.port)
+    if options.devel:
+        get_fleet(
+            get_character(u'Mia Cloks'),
+            'Vilur',
+            'Shield-Флот 1',
+            'HQ (40)'
+        ).enqueue(get_character(u'Zwo Zateki'))
     ioloop.IOLoop.instance().start()

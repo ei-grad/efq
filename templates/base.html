@@ -23,8 +23,12 @@
           <a class="navbar-brand" href="/">{{ TITLE }}</a>
         </div>
         <ul class="nav navbar-nav navbar-right">
-          <li><a href="/admin">Админка</a></li>
-          <li><a href="#">Персонаж: {{ character.name if character is not None else 'Неизвестен' }}</a></li>
+          {% if character is not None %}
+          {% if character.is_admin %}<li><a href="/admin">Админка</a></li>{% end %}
+          <li><a href="#">Персонаж: {{ character.name }}</a></li>
+          {% else %}
+          <li><a href="#">Персонаж: 'Неизвестен'</a></li>
+          {% end %}
         </ul>
       </div>
     </div>
