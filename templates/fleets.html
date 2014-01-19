@@ -7,7 +7,7 @@
   {% for fleet in fleets %}
   <div class="row">
     <div class="span8">
-      <h5>{{ fleet.solar_system }} - {{ fleet.level }} - {{ fleet.fc.name }} (в очереди - {{ len(fleet.queue) }})</h5>
+      <h5>{{ fleet.fleet_type }} - {{ fleet.fc.name }} (в очереди - {{ len(fleet.queue) }})</h5>
     </div>
     <div class="span4">
       <form class="form-inline" method="POST" action="join">

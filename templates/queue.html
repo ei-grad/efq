@@ -3,8 +3,7 @@
 {% block content %}
 <p>Вы стоите в очереди во флот.</p>
 <p>ФК: <b>{{ fleet.fc.name }}</b></p>
-<p>Канал в TeamSpeak 3: <b>{{ fleet.ts_channel }}</b> (сервер: voice.raisa.su)</p>
-<p>Система: <b>{{ fleet.solar_system }}</b> - {{ fleet.level }}</p>
+<p>Тип флота: <b>{{ fleet.fleet_type }}</b></p>
 <p>Ваша позиция: <b>{{ queue.index(character) + 1 }}</b> из {{ len(queue) }}</p>
 
 <br/>
