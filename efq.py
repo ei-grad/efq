@@ -381,6 +381,12 @@ if __name__ == "__main__":
 
     import ui
 
+    define('devel', type=bool, default=False)
+    define('host', type=str, default='localhost')
+    define('port', type=int, default=8888)
+
+    parse_command_line()
+
     application = web.Application(
         [
             (r"/", FleetsHandler),
@@ -403,12 +409,6 @@ if __name__ == "__main__":
         debug=options.devel,
         xsrf_token=True,
     )
-
-    define('devel', type=bool, default=False)
-    define('host', type=str, default='localhost')
-    define('port', type=int, default=8888)
-
-    parse_command_line()
 
     application.listen(options.port, options.host)
 
