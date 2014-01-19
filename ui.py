@@ -8,7 +8,7 @@ FLEET_TYPES = ['Vanguard (10)', 'Assault (20)', 'HQ (40)']
 
 class FakeFleet(object):
     def __init__(self):
-        self.fleet_type = None
+        self.fleet_type = FLEET_TYPES[0]
 
 
 class FleetForm(UIModule):

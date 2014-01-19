@@ -6,11 +6,11 @@
   <h4>Флоты:</h4>
   {% for fleet in fleets %}
   <div class="row">
-    <div class="span8">
+    <div class="col-xs-9">
       <h5>{{ fleet.fleet_type }} - {{ fleet.fc.name }} (в очереди - {{ len(fleet.queue) }})</h5>
     </div>
-    <div class="span4">
-      <form class="form-inline" method="POST" action="join">
+    <div class="col-xs-3">
+      <form class="form-inline pull-right" method="POST" action="join">
         {% module xsrf_form_html() %}
         <input type='hidden' name='action' value='join' />
         <input type='hidden' name='fc' value='{{ fleet.fc.name }}' />

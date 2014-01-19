@@ -12,6 +12,8 @@ from tornado import gen, ioloop, web, httpclient, stack_context
 from tornado.options import options, define, parse_command_line
 from tornado.httputil import urlencode
 
+import ui
+
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +54,7 @@ FLEETS = {}
 
 def get_fleet(fc, fleet_type=None):
     if fc not in FLEETS:
-        FLEETS[fc] = Fleet(fc, fleet_type=None)
+        FLEETS[fc] = Fleet(fc, fleet_type=fleet_type)
     return FLEETS[fc]
 
 
@@ -83,6 +85,8 @@ class Fleet(object):
         fc.fleet = self
         fc.is_fc = True
 
+        if fleet_type is None:
+            fleet_type = ui.FLEET_TYPES[0]
         self.fleet_type = fleet_type
 
         self.queue = []
@@ -144,6 +148,8 @@ class Fleet(object):
 
 class BaseHandler(web.RequestHandler):
 
+    FREE_CHARS = set()
+
     login_required = True
     status_required = None
 
@@ -163,10 +169,16 @@ class BaseHandler(web.RequestHandler):
 
     def get_character_status(self):
         if self.character.fleet is None:
+            if self.character not in self.FREE_CHARS:
+                self.FREE_CHARS.add(self.character)
             return 'free'
         elif self.character.is_fc is True:
+            if self.character in self.FREE_CHARS:
+                self.FREE_CHARS.remove(self.character)
             return 'fc'
         else:
+            if self.character in self.FREE_CHARS:
+                self.FREE_CHARS.remove(self.character)
             return 'queue'
 
     def check_status_required(self):
@@ -240,6 +252,8 @@ class FleetsHandler(BaseFreeHandler):
 
     def post(self):
         get_fleet(self.character, self.get_argument('fleet_type'))
+        for character in self.FREE_CHARS:
+            character.refresh()
         self.redirect('/fc')
 
 
@@ -286,11 +300,15 @@ class TypeHandler(BaseFCHandler):
     def post(self):
         fleet = self.character.fleet
         fleet.fleet_type = self.get_argument('fleet_type')
+        for character in self.FREE_CHARS:
+            character.refresh()
         self.redirect('/fc')
 
 class DismissHandler(BaseFCHandler):
     def post(self):
         self.character.fleet.dismiss()
+        for character in self.FREE_CHARS:
+            character.refresh()
         self.redirect('/')
 
 
@@ -374,8 +392,6 @@ except:
 
 
 if __name__ == "__main__":
-
-    import ui
 
     define('devel', type=bool, default=False)
     define('host', type=str, default='localhost')
