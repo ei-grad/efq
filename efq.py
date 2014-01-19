@@ -400,9 +400,10 @@ if __name__ == "__main__":
         debug=options.devel,
         xsrf_token=True,
     )
+    define('host', type=str, default='localhost')
     define('port', type=int, default=8888)
     parse_command_line()
-    application.listen(options.port)
+    application.listen(options.port, options.host)
     if options.devel:
         get_fleet(
             get_character(u'Mia Cloks'),
