@@ -2,10 +2,6 @@
 
 {% block content %}
 
-{% module FleetForm("Ваш флот", "type", "Сохранить", fleet) %}
-
-<br/>
-
 {% if fleet.queue %}
 <div class="panel panel-primary">
 <div class="panel-heading">Очередь ({{ len(fleet.queue) }} человек):</div>
@@ -26,11 +22,13 @@
 <p>Очередь в этот флот пуста.</p>
 {% end %}
 
+<div class="well">
+{% module FleetForm("Ваш флот", "type", "Сохранить", fleet) %}
 <form method="POST" action="dismiss">
   {% module xsrf_form_html() %}
   <button type="submit" class="btn btn-danger">Распустить очередь</button>
 </form>
-
+</div>
 {% end %}
 
 
