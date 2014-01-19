@@ -3,34 +3,47 @@
 {% block content %}
 
 <div class="row">
-  <div class="col-xs-6">
-    {% module FleetForm("", "type", "Изменить", fleet) %}
+  <div class="col-sm-6">
+    <form method='POST' class="form-inline" action="type">
+      {% module xsrf_form_html() %}
+      <select name='fleet_type' class='input-xs col-xs-6'>
+        {% for i in FLEET_TYPES %}
+        <option value='{{ i }}'{% if fleet.fleet_type == i %} selected{% end %}>{{ i }}</option>
+        {% end %}
+      </select>
+      <button type="submit" class="btn btn-default btn-xs col-xs-6">Изменить</button>
+    </form>
   </div>
-  <div class="col-xs-6">
+  <div class="col-sm-6">
     <form method="POST" action="dismiss" class="form-inline">
       {% module xsrf_form_html() %}
-      <button type="submit" class="btn btn-danger pull-right">Распустить очередь</button>
+      <button type="submit" class="btn btn-danger btn-xs btn-block pull-right">Распустить очередь</button>
     </form>
   </div>
 </div>
-<br/>
+
 {% if fleet.queue %}
-<div class="panel panel-primary">
-<div class="panel-heading">Очередь ({{ len(fleet.queue) }} человек):</div>
-
-<ol class="list-group">
-{% for i in fleet.queue %}
-<li class="list-group-item">
-<a onclick='javascript:CCPEVE.showInfo(1377, "{{ i.char_id }}");'>{{ i.name }}</a> - 
-<a onclick='javascript:CCPEVE.showFitting("{{ i.fit }}")'>{{ i.ship_type }}</a>
-<button class="btn btn-xs btn-primary pull-right" onclick='javascript:inviteToFleet("{{ i.name }}", "{{ i.char_id }}")'><i class="fa fa-check"></i> Invite</button>
-</li>
-{% end %}
-</ol>
-
-</div>
-
+<div class="panel panel-primary" style="margin-top: 5px;">
+  <div class="panel-heading">Очередь ({{ len(fleet.queue) }} человек):</div>
+  <ol class="list-group">
+    {% for i in fleet.queue %}
+    <li class="list-group-item">
+    <a onclick='javascript:CCPEVE.showInfo(1377, "{{ i.char_id }}");'>{{ i.name }}</a> - 
+    {% module Fit(i) %}
+    <div class="pull-right">
+      <button class="btn btn-xs btn-primary"
+        onclick='javascript:fleetInvite("{{ i.name }}", "{{ i.char_id }}")'
+        ><i class="fa fa-check"></i> Принять</button>
+      <button class="btn btn-xs btn-warning"
+        onclick='javascript:fleetDecline("{{ i.name }}", "{{ i.char_id }}")'
+        ><i class="fa fa-wheelchair"></i> Отказать</button>
+    </div>
+    </li>
+    {% end %}
+  </ol>
+  </div>
 {% else %}
+<br/>
 <p>Очередь в этот флот пуста.</p>
 {% end %}
 
@@ -39,10 +52,13 @@
 
 {% block addjs %}
 <script>
-function inviteToFleet(name, char_id) {
+function fleetInvite(name, char_id) {
   CCPEVE.requestTrust('http://{{ request.host }}');
   CCPEVE.inviteToFleet(parseInt(char_id));
-  $.post('/pop', {character: name});
+  $.post('/invite', {character: name});
+}
+function fleetDecline(name, char_id) {
+  $.post('/decline', {character: name});
 }
 </script>
 {% end %}

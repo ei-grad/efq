@@ -2,31 +2,70 @@
 
 {% block content %}
 
-{% if fleets %}
-  <h4>Флоты:</h4>
-  {% for fleet in fleets %}
-  <div class="row">
-    <div class="col-xs-9">
-      <h5>{{ fleet.fleet_type }} - {{ fleet.fc.name }} (в очереди - {{ len(fleet.queue) }})</h5>
+<div class="row">
+  <div class="col-md-6">
+    {% if fleets %}
+    <div class="panel panel-primary">
+      <div class="panel-heading">Флоты:</div>
+      <ul class="list-group">
+      {% for fleet in fleets %}
+        <li class="list-group-item">
+        {{ fleet.fleet_type }} - {{ fleet.fc.name }} (в очереди - {{ len(fleet.queue) }})
+        <form class="form-inline pull-right" method="POST" action="join">
+          {% module xsrf_form_html() %}
+          <input type='hidden' name='action' value='join' />
+          <input type='hidden' name='fc' value='{{ fleet.fc.name }}' />
+          <div class="form-group">
+            <button type="submit" class="btn btn-default btn-xs">Встать в очередь</button>
+          </div>
+        </form>
+        </li>
+      {% end %}
+      </ul>
     </div>
-    <div class="col-xs-3">
-      <form class="form-inline pull-right" method="POST" action="join">
-        {% module xsrf_form_html() %}
-        <input type='hidden' name='action' value='join' />
-        <input type='hidden' name='fc' value='{{ fleet.fc.name }}' />
-        <div class="form-group">
-          <button type="submit" class="btn btn-default btn-small">Встать в очередь</button>
-        </div>
-      </form>
+    {% else %}
+      <p>Флотов сейчас нет, либо ФК не используют EFQ.</p>
+    {% end %}
+  </div>
+  <div class="col-md-3">
+    <div class="panel panel-default">
+      <div class="panel-heading">Мой фит:</div>
+      <div class="panel-body">
+        {% module Fit(character) %}
+        <a class="btn btn-xs btn-default pull-right" href="/fit">Загрузить фит</a>
+      </div>
     </div>
   </div>
-  {% end %}
-{% else %}
-  <p>Флотов сейчас нет, либо ФК не используют EFQ.</p>
-{% end %}
+  <div class="col-md-3">
+    <div class="panel panel-default">
+      <div class="panel-heading">Сейчас Online:</div>
+      <!-- сгруппировать по кораблям! -->
+      <div class="panel-body">
+      {{ ', '.join(i.name for i in sorted(ONLINE, key=lambda x: x.name)) }}
+      </div>
+    </div>
+  </div>
+</div>
 
 <br/>
 
-{% module FleetForm(legend="Новый флот", action="", submit="Создать") %}
+<div class="row">
+  <div class="col-md-6">
+    <form method='POST' class="form-inline">
+      <legend>Новый флот</legend>
+      {% module xsrf_form_html() %}
+      <div class="form-group">
+        <select name='fleet_type' class='form-control input-sm'>
+          {% for n, i in enumerate(FLEET_TYPES) %}
+          <option value='{{ i }}'{% if n == 0 %} selected{% end %}>{{ i }}</option>
+          {% end %}
+        </select>
+      </div>
+      <div class="form-group">
+        <button type="submit" class="form-control btn btn-default btn-sm input-sm">Создать</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 {% end %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<p>Текущий фит: {% module Fit(character) %}</p>
+
+<form method="POST">
+  <legend>Загрузить новый фит</legend>
+  <div class="form-group">
+    <label for="inputEmail" class="col-lg-2 control-label">Корабль</label>
+    <div class="col-lg-10">
+      <input type="text" class="form-control" id="inputEmail" name="ship" placeholder="Ship Type">
+      <span class="help-block">Введите тип вашего корабля, с точностью до регистра. Например:
+        {% for n, ship in reversed(list(enumerate(reversed(PREFERRED_SHIPS)))) %}
+        <a href="#" style="border-bottom: 1px dashed #999; color: #C8C8C8;" onclick='javascript:$("input[name=ship]").val("{{ ship }}")'>{{ ship }}</a>{% if n %},{% end %}
+        {% end %}
+      </span>
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="textArea" class="col-lg-2 control-label">Модули</label>
+    <div class="col-lg-10">
+      <textarea class="form-control" rows="15" id="textArea" name="lines" placeholder="Modules"></textarea>
+      <span class="help-block">
+        Откройте свой фит в Eve, выделите в нем любую
+        строчку с модулем, нажмите Ctrl+A и Ctrl+C, а затем вставьте то что
+        получилось в это поле, нажав правую кнопку мыши и выбрав пункт "Вставить"
+        или "Paste".
+      </span>
+    </div>
+  </div>
+  <div class="form-group">
+    <div class="col-lg-10 col-lg-offset-2">
+      <button type="submit" class="btn btn-primary">Загрузить</button> 
+    </div>
+  </div>
+</form>
+{% end %}

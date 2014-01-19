@@ -2,11 +2,12 @@
 # coding: utf-8
 
 from datetime import timedelta
-import logging
 from functools import wraps
-import re
-import os
 import binascii
+import json
+import logging
+import os
+import re
 
 from tornado import gen, ioloop, web, httpclient, stack_context
 from tornado.options import options, define, parse_command_line
@@ -18,6 +19,36 @@ import ui
 logger = logging.getLogger(__name__)
 
 TITLE = 'EVE Online Fleet Queue'
+
+FLEET_TYPES = ['Vanguard (10)', 'Assault (20)', 'HQ (40)']
+PREFERRED_SHIPS = [
+    'Vindicator',
+    'Machariel',
+    'Nightmar',
+    'Basilisk',
+    'Scimitar',
+    'Vargur,'
+    'Loki',
+    'Megathron Navy Issue',
+    'Bhaalgorn',
+    'Tempest Fleet Issue',
+    'Rokh',
+    'Maelstrom',
+    'Hyperion',
+    'Golem',
+    'Tengu',
+    'Tempest',
+    'Raven Navy Issue',
+    'Rattlesnake',
+    'Dominix Navy Issue',
+    'Armageddon Navy Issue',
+    'Abaddon',
+    'Scorpion Navy Issue',
+    'Raven',
+    'Drake',
+    'Apocalypse Navy Issue',
+
+]
 
 ADMINS = [
     u'Mia Cloks',
@@ -66,9 +97,15 @@ class Character(object):
         self.fleet = None
         self.is_fc = False
         self.is_admin = name in ADMINS
-        self.ship_type = 'Basilisk'
-        self.fit = '11985:2048;1:31366;1:16487;2:1355;1:1964;2:18672;1:31796;1:3608;4:4349;1:19231;1::'
+        self.fit = None
         self.callbacks = []
+
+    @property
+    def ship(self):
+        if self.fit is not None:
+            return TYPES_BY_ID.get(self.fit.split(':', 1)[0],
+                                   {'name': 'Неопределен'})['name']
+        return 'Неопределен'
 
     def refresh(self):
         callbacks, self.callbacks = self.callbacks, []
@@ -86,7 +123,8 @@ class Fleet(object):
         fc.is_fc = True
 
         if fleet_type is None:
-            fleet_type = ui.FLEET_TYPES[0]
+            fleet_type = FLEET_TYPES[0]
+
         self.fleet_type = fleet_type
 
         self.queue = []
@@ -152,6 +190,7 @@ class Fleet(object):
 class BaseHandler(web.RequestHandler):
 
     FREE_CHARS = set()
+    ONLINE = set()
 
     login_required = True
     status_required = None
@@ -197,6 +236,10 @@ class BaseHandler(web.RequestHandler):
     def render(self, *args, **kwargs):
         kwargs.update({
             'TITLE': TITLE,
+            'FLEET_TYPES': FLEET_TYPES,
+            'PREFERRED_SHIPS': PREFERRED_SHIPS,
+            'FREE_CHARS': self.FREE_CHARS,
+            'ONLINE': self.ONLINE,
             'character': self.character,
         })
         return super(BaseHandler, self).render(*args, **kwargs)
@@ -315,7 +358,14 @@ class DismissHandler(BaseFCHandler):
         self.redirect('/')
 
 
-class PopHandler(BaseFCHandler):
+class InviteHandler(BaseFCHandler):
+    @gen.coroutine
+    def post(self):
+        character = yield get_character(self.get_argument('character'))
+        self.character.fleet.dequeue(character)
+
+
+class DeclineHandler(BaseFCHandler):
     @gen.coroutine
     def post(self):
         character = yield get_character(self.get_argument('character'))
@@ -328,6 +378,8 @@ class PollHandler(BaseHandler):
     def get(self):
         if self.character is not None:
             self.cb = stack_context.wrap(self.finish)
+            if self.character not in self.ONLINE:
+                self.ONLINE.add(self.character)
             self.character.callbacks.append(self.cb)
         else:
             self.finish()
@@ -335,6 +387,8 @@ class PollHandler(BaseHandler):
     def on_connection_close(self):
         if self.cb in self.character.callbacks:
             self.character.callbacks.remove(self.cb)
+            if not self.character.callbacks and self.character in self.ONLINE:
+                self.ONLINE.remove(self.character)
 
 
 class CharacterIDHandler(web.RequestHandler):
@@ -364,7 +418,7 @@ class AdminHandler(BaseHandler):
 
     @admin_required
     def get(self):
-        self.render('admin.html', fleet_types=ui.FLEET_TYPES)
+        self.render('admin.html')
 
     @admin_required
     def post(self):
@@ -375,15 +429,64 @@ class AdminHandler(BaseHandler):
             return self.redirect('/')
         elif action == 'fleet_types':
             fleet_types = self.get_argument('fleet_types')
-            ui.FLEET_TYPES = fleet_types.splitlines()
+            for i in reversed(range(len(FLEET_TYPES))):
+                FLEET_TYPES.pop(i)
+            FLEET_TYPES.extend(fleet_types.splitlines())
             return self.redirect('/')
         else:
             self.send_error(400)
 
 
+try:
+    TYPES_BY_NAME = json.load(open('types_by_name.json'))
+except:
+    TYPES_BY_NAME = {}
+
+
+try:
+    TYPES_BY_ID = json.load(open('types_by_id.json'))
+except:
+    TYPES_BY_ID = {}
+
+
+MODULE_RE = re.compile('((?P<q>[0-9 ]+)x )?(?P<name>.*)')
+
+
+
 class FitHandler(BaseHandler):
+
     def get(self):
-         pass
+         self.render('fit.html')
+
+    def post(self):
+        ship = self.get_argument('ship')
+        lines = self.get_argument('lines').splitlines()
+
+        if ship not in TYPES_BY_NAME or TYPES_BY_NAME[ship]['slot'] != 'ship':
+            self.render('fit.html', msg='Нет такого корабля')
+
+        modules = {}
+
+        for line in lines:
+            m = MODULE_RE.search(line)
+            if m is not None:
+                if m.group('name') in TYPES_BY_NAME:
+                    if m.group('name') not in modules:
+                        modules[m.group('name')] = 0
+                    q = 0
+                    if m.group('q') is not None:
+                        q = int(m.group('q'))
+                    modules[m.group('name')] += q
+
+        self.character.fit = '%d:%s::' % (TYPES_BY_NAME[ship]['id'], ':'.join(
+            '%d;%d' % (TYPES_BY_NAME[name]['id'], int(q))
+            for name, q in modules.items()
+        ))
+
+        for fc in self.character.fleet.fcs:
+            fc.refresh()
+
+        self.redirect('/')
 
 
 try:
@@ -405,18 +508,19 @@ if __name__ == "__main__":
     application = web.Application(
         [
             (r"/", FleetsHandler),
-            (r"/login", IdentifyHandler),
-            (r"/queue", QueueHandler),
+            (r"/admin", AdminHandler),
+            (r"/char_id", CharacterIDHandler),
+            (r"/decline", DeclineHandler),
+            (r"/dismiss", DismissHandler),
+            (r"/fc", FCHandler),
+            (r"/fit", FitHandler),
+            (r"/invite", InviteHandler),
             (r"/join", JoinHandler),
             (r"/leave", LeaveHandler),
-            (r"/fc", FCHandler),
-            (r"/type", TypeHandler),
-            (r"/pop", PopHandler),
-            (r"/dismiss", DismissHandler),
-            (r"/admin", AdminHandler),
+            (r"/login", IdentifyHandler),
             (r"/poll", PollHandler),
-            (r"/char_id", CharacterIDHandler),
-            (r"/fit", FitHandler),
+            (r"/queue", QueueHandler),
+            (r"/type", TypeHandler),
         ],
         cookie_secret=cookie_secret,
         template_path='templates',
