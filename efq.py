@@ -225,7 +225,7 @@ class IdentifyHandler(BaseHandler):
 
 
 def get_fleets_list():
-    return sorted(FLEETS.values(), key=lambda x: '%s:%s' % (x.fleet_type))
+    return sorted(FLEETS.values(), key=lambda x: x.fleet_type)
 
 
 
