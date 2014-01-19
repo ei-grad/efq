@@ -45,13 +45,7 @@
           <li class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown">Персонаж: {{ character.name }} <b class="caret"></b></a>
             <ul class="dropdown-menu">
-              <li><a href="#">Action</a></li>
-              <li><a href="#">Another action</a></li>
-              <li><a href="#">Something else here</a></li>
-              <li class="divider"></li>
-              <li class="dropdown-header">Nav header</li>
-              <li><a href="#">Separated link</a></li>
-              <li><a href="#">One more separated link</a></li>
+              <li><a href="#" onclick='javascript:logout()'>Выйти</a></li>
             </ul>
           </li>
           {% else %}
@@ -73,6 +67,13 @@
     function getCookie(name) {
       var r = document.cookie.match("\\b" + name + "=([^;]*)\\b");
       return r ? r[1] : undefined;
+    }
+    function deleteCookie(name) {
+      document.cookie = name+'="";-1; path=/';
+    }
+    function logout() {
+      deleteCookie("character");
+      document.location = "/";
     }
     $.ajaxSetup({headers: {'X-XSRFToken': getCookie("_xsrf")} });
     </script>

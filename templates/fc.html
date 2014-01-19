@@ -37,6 +37,7 @@
 {% block addjs %}
 <script>
 function inviteToFleet(name, char_id) {
+  CCPEVE.requestTrust('http://{{ request.host }}');
   CCPEVE.inviteToFleet(parseInt(char_id));
   $.post('/pop', {character: name});
 }
