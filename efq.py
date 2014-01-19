@@ -103,7 +103,8 @@ class Fleet(object):
         character.is_fc = False
         for fc in self.fcs:
             fc.refresh()
-        character.refresh()
+        for i in self.queue:
+            i.refresh()
 
     def dequeue(self, character):
         if character in self.queue:
@@ -112,6 +113,8 @@ class Fleet(object):
             fc.refresh()
         character.fleet = None
         character.refresh()
+        for i in self.queue:
+            i.refresh()
 
     def dismiss(self, new_fc=None):
         del FLEETS[self.fc]
