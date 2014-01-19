@@ -370,35 +370,36 @@ except:
     with open('.cookie_secret', 'wb') as f:
         f.write(cookie_secret)
 
-import ui
-
-application = web.Application(
-    [
-        (r"/", FleetsHandler),
-        (r"/login", IdentifyHandler),
-        (r"/queue", QueueHandler),
-        (r"/join", JoinHandler),
-        (r"/leave", LeaveHandler),
-        (r"/dismiss", DismissHandler),
-        (r"/pop", PopHandler),
-        (r"/fc", FCHandler),
-        (r"/save", SaveHandler),
-        (r"/admin", AdminHandler),
-        (r"/poll", PollHandler),
-        (r"/char_id", CharacterIDHandler),
-    ],
-    cookie_secret=cookie_secret,
-    template_path='templates',
-    static_path='static',
-    ui_modules=ui,
-    debug=True,
-    xsrf_token=True,
-)
 
 define('devel', type=bool, default=False)
 
 
 if __name__ == "__main__":
+
+    import ui
+
+    application = web.Application(
+        [
+            (r"/", FleetsHandler),
+            (r"/login", IdentifyHandler),
+            (r"/queue", QueueHandler),
+            (r"/join", JoinHandler),
+            (r"/leave", LeaveHandler),
+            (r"/dismiss", DismissHandler),
+            (r"/pop", PopHandler),
+            (r"/fc", FCHandler),
+            (r"/save", SaveHandler),
+            (r"/admin", AdminHandler),
+            (r"/poll", PollHandler),
+            (r"/char_id", CharacterIDHandler),
+        ],
+        cookie_secret=cookie_secret,
+        template_path='templates',
+        static_path='static',
+        ui_modules=ui,
+        debug=options.devel,
+        xsrf_token=True,
+    )
     define('port', type=int, default=8888)
     parse_command_line()
     application.listen(options.port)
