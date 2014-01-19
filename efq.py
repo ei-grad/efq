@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+from datetime import timedelta
 import logging
 from functools import wraps
 import re
@@ -26,18 +27,32 @@ ADMINS = [
 CHARACTERS = {}
 
 
-def get_character(name, *args, **kwargs):
+@gen.coroutine
+def get_character(name):
     if name not in CHARACTERS:
-        CHARACTERS[name] = Character(name, *args, **kwargs)
-    return CHARACTERS[name]
+        character = Character(name)
+        CHARACTERS[name] = character
+        while True:
+            url = "https://api.eveonline.com/eve/CharacterID.xml.aspx"
+            url = '?'.join([url, urlencode({'names': name})])
+            response = yield httpclient.AsyncHTTPClient().fetch(url)
+            content = response.body.decode('utf-8')
+            m = re.search(r'characterID="(\d+)"', content)
+            if m is not None:
+                character.char_id = m.group(1)
+                logger.debug('Got %s char_id: %s', name, character.char_id)
+                break
+            _ = yield gen.Task(ioloop.IOLoop.instance().add_timeout,
+                               timedelta(seconds=5))
+    raise gen.Return(CHARACTERS[name])
 
 
 FLEETS = {}
 
 
-def get_fleet(fc, *args, **kwargs):
+def get_fleet(fc, fleet_type=None):
     if fc not in FLEETS:
-        FLEETS[fc] = Fleet(fc, *args, **kwargs)
+        FLEETS[fc] = Fleet(fc, fleet_type=None)
     return FLEETS[fc]
 
 
@@ -49,6 +64,8 @@ class Character(object):
         self.fleet = None
         self.is_fc = False
         self.is_admin = name in ADMINS
+        self.ship_type = 'Basilisk'
+        self.fit = '11985:2048;1:31366;1:16487;2:1355;1:1964;2:18672;1:31796;1:3608;4:4349;1:19231;1::'
         self.callbacks = []
 
     def refresh(self):
@@ -59,14 +76,15 @@ class Character(object):
 
 class Fleet(object):
 
-    def __init__(self, fc, solar_system=None, ts_channel=None, level=None):
+    def __init__(self, fc, fleet_type=None):
         self._fc = fc
         self.fcs = [fc]
+
         fc.fleet = self
         fc.is_fc = True
-        self.solar_system = solar_system
-        self.ts_channel = ts_channel
-        self.level = level
+
+        self.fleet_type = fleet_type
+
         self.queue = []
 
     @property
@@ -129,14 +147,39 @@ class Fleet(object):
 class BaseHandler(web.RequestHandler):
 
     login_required = True
+    status_required = None
 
+    @gen.coroutine
     def prepare(self):
         super(BaseHandler, self).prepare()
+
         self.character = self.get_secure_cookie('character', None)
+
         if self.character is not None:
-            self.character = get_character(self.character.decode('utf-8'))
+            self.character = yield get_character(self.character.decode('utf-8'))
+
         if self.character is None and self.login_required:
             self.redirect('/login')
+
+        self.check_status_required()
+
+    def get_character_status(self):
+        if self.character.fleet is None:
+            return 'free'
+        elif self.character.is_fc is True:
+            return 'fc'
+        else:
+            return 'queue'
+
+    def check_status_required(self):
+        if self.status_required is not None:
+            status = self.get_character_status()
+            if status != self.status_required:
+                self.redirect({
+                    'free': '/',
+                    'fc': '/fc',
+                    'queue': '/queue',
+                }[status])
 
     def render(self, *args, **kwargs):
         kwargs.update({
@@ -188,60 +231,22 @@ def get_fleets_list():
                   key=lambda x: '%s:%s' % (x.level, x.solar_system))
 
 
-def free_required(func):
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        if self.character.fleet is not None:
-            if self.character.is_fc is True:
-                self.redirect('/fc')
-            else:
-                self.redirect('/queue')
-        else:
-            return func(self, *args, **kwargs)
-    return wrapper
+
+class BaseFreeHandler(BaseHandler):
+    status_required = 'free'
 
 
-def queue_required(func):
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        if self.character.fleet is None:
-            self.redirect('/')
-        elif self.character.is_fc is True:
-            self.redirect('/fc')
-        else:
-            return func(self, *args, **kwargs)
-    return wrapper
+class FleetsHandler(BaseFreeHandler):
 
-
-def fc_required(func):
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        if self.character.fleet is None:
-            self.redirect('/')
-        elif self.character.is_fc is False:
-            self.redirect('/queue')
-        else:
-            return func(self, *args, **kwargs)
-    return wrapper
-
-
-class FleetsHandler(BaseHandler):
-
-    @free_required
     def get(self):
         self.render('fleets.html', fleets=get_fleets_list())
 
-    @free_required
     def post(self):
-        get_fleet(self.character,
-                  self.get_argument('solar_system') or u'система выбирается',
-                  self.get_argument('ts_channel'),
-                  self.get_argument('level'))
+        get_fleet(self.character, self.get_argument('fleet_type'))
         self.redirect('/fc')
 
 
-class JoinHandler(BaseHandler):
-    @free_required
+class JoinHandler(BaseFreeHandler):
     def post(self):
         fleet = get_character(self.get_argument('fc')).fleet
         if fleet is not None:
@@ -252,36 +257,72 @@ class JoinHandler(BaseHandler):
         else:
             self.redirect('/')
 
+class BaseQueueHandler(BaseHandler):
+    status_required = 'queue'
 
-class LeaveHandler(BaseHandler):
-    @queue_required
+
+class LeaveHandler(BaseQueueHandler):
     def post(self):
         self.character.fleet.dequeue(self.character)
         self.redirect('/')
 
 
-class QueueHandler(BaseHandler):
-    @queue_required
+class QueueHandler(BaseQueueHandler):
     def get(self):
         self.render('queue.html',
                     fleet=self.character.fleet,
                     queue=self.character.fleet.queue)
 
 
-class FCHandler(BaseHandler):
-    @fc_required
+class BaseFCHandler(BaseHandler):
+    status_required = 'fc'
+
+
+class FCHandler(BaseFCHandler):
     def get(self):
         self.render('fc.html', fleet=self.character.fleet)
 
 
-class SaveHandler(BaseHandler):
-    @fc_required
+class TypeHandler(BaseFCHandler):
     def post(self):
         fleet = self.character.fleet
-        fleet.ts_channel = self.get_argument('ts_channel')
-        fleet.level = self.get_argument('level')
-        fleet.solar_system = self.get_argument('solar_system')
+        fleet.fleet_type = self.get_argument('fleet_type')
         self.redirect('/fc')
+
+class DismissHandler(BaseFCHandler):
+    def post(self):
+        self.character.fleet.dismiss()
+        self.redirect('/')
+
+
+class PopHandler(BaseFCHandler):
+    @gen.coroutine
+    def post(self):
+        character = yield get_character(self.get_argument('character'))
+        self.character.fleet.dequeue(character)
+
+
+class PollHandler(BaseHandler):
+
+    @web.asynchronous
+    def get(self):
+        if self.character is not None:
+            self.cb = stack_context.wrap(self.finish)
+            self.character.callbacks.append(self.cb)
+        else:
+            self.finish()
+
+    def on_connection_close(self):
+        if self.cb in self.character.callbacks:
+            self.character.callbacks.remove(self.cb)
+
+
+class CharacterIDHandler(web.RequestHandler):
+    @gen.coroutine
+    def get(self):
+        character = self.get_argument('name')
+        character = yield get_character(character)
+        self.finish(character.char_id)
 
 
 def admin_required(func):
@@ -303,7 +344,7 @@ class AdminHandler(BaseHandler):
 
     @admin_required
     def get(self):
-        self.render('admin.html')
+        self.render('admin.html', fleet_types=ui.FLEET_TYPES)
 
     @admin_required
     def post(self):
@@ -312,61 +353,17 @@ class AdminHandler(BaseHandler):
             self.set_secure_cookie('character', self.get_argument('character'))
             self.clear_cookie('key')
             return self.redirect('/')
+        elif action == 'fleet_types':
+            fleet_types = self.get_argument('fleet_types')
+            ui.FLEET_TYPES = fleet_types.splitlines()
+            return self.redirect('/')
         else:
             self.send_error(400)
 
 
-class DismissHandler(BaseHandler):
-    @fc_required
-    def post(self):
-        self.character.fleet.dismiss()
-        self.redirect('/')
-
-
-class PopHandler(BaseHandler):
-    @fc_required
-    def post(self):
-        character = get_character(self.get_argument('character'))
-        self.character.fleet.dequeue(character)
-
-
-CALLBACKS = {}
-
-
-class PollHandler(BaseHandler):
-    @web.asynchronous
+class FitHandler(BaseHandler):
     def get(self):
-        if self.character is not None:
-            self.cb = stack_context.wrap(self.finish)
-            self.character.callbacks.append(self.cb)
-        else:
-            self.finish()
-
-    def on_connection_close(self):
-        if self.cb in self.character.callbacks:
-            self.character.callbacks.remove(self.cb)
-
-
-class CharacterIDHandler(web.RequestHandler):
-
-    CHARACTERS = {}
-
-    @gen.coroutine
-    def get(self):
-        character = self.get_argument('name')
-        if character not in self.CHARACTERS:
-            url = "https://api.eveonline.com/eve/CharacterID.xml.aspx"
-            url = '?'.join([url, urlencode({'names': character})])
-            response = yield httpclient.AsyncHTTPClient().fetch(url)
-            content = response.body.decode('utf-8')
-            m = re.search(r'characterID="(\d+)"', content)
-            if m is not None:
-                self.CHARACTERS[character] = m.group(1)
-                self.finish(self.CHARACTERS[character])
-            else:
-                self.send_error(400)
-        else:
-            self.finish(self.CHARACTERS[character])
+         pass
 
 
 try:
@@ -395,12 +392,13 @@ if __name__ == "__main__":
             (r"/join", JoinHandler),
             (r"/leave", LeaveHandler),
             (r"/fc", FCHandler),
-            (r"/save", SaveHandler),
+            (r"/type", TypeHandler),
             (r"/pop", PopHandler),
             (r"/dismiss", DismissHandler),
             (r"/admin", AdminHandler),
             (r"/poll", PollHandler),
             (r"/char_id", CharacterIDHandler),
+            (r"/fit", FitHandler),
         ],
         cookie_secret=cookie_secret,
         template_path='templates',
@@ -413,11 +411,18 @@ if __name__ == "__main__":
     application.listen(options.port, options.host)
 
     if options.devel:
-        get_fleet(
-            get_character(u'Mia Cloks'),
-            'Vilur',
-            'Shield-Флот 1',
-            'HQ (40)'
-        ).enqueue(get_character(u'Zwo Zateki'))
+
+        @gen.coroutine
+        def setup_fixture():
+            mia, zwo = yield [get_character(u'Mia Cloks'),
+                              get_character(u'Zwo Zateki')]
+            try:
+                get_fleet(mia, 'HQ (40)').enqueue(zwo)
+            except:
+                logger.debug('Fixture setup failed:', exc_info=True)
+
+            logger.debug('Fixture setup complete.')
+
+        ioloop.IOLoop.instance().add_callback(stack_context.wrap(setup_fixture))
 
     ioloop.IOLoop.instance().start()

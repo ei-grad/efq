@@ -6,6 +6,11 @@
 
     <!-- Bootstrap -->
     <link href="{{ static_url('css/bootstrap.min.css') }}" rel="stylesheet">
+
+    <!-- Icons -->
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
+
+    <!-- Style overrides -->
     <link href="{{ static_url('css/style.css') }}" rel="stylesheet">
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -17,20 +22,43 @@
   </head>
   <body>
 
-    <div class="navbar" role="navigation">
-      <div class="container">
-        <div class="navbar-header">
-          <a class="navbar-brand" href="/">{{ TITLE }}</a>
-        </div>
+    <!-- Static navbar -->
+    <div class="navbar navbar-default" role="navigation">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/">{{ TITLE }}</a>
+      </div>
+      <div class="navbar-collapse collapse">
+        <ul class="nav navbar-nav">
+          <li class="active"><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+          <li><a href="#">Link</a></li>
+        </ul>
         <ul class="nav navbar-nav navbar-right">
           {% if character is not None %}
           {% if character.is_admin %}<li><a href="/admin">Админка</a></li>{% end %}
-          <li><a href="#">Персонаж: {{ character.name }}</a></li>
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Персонаж: {{ character.name }} <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li><a href="#">Action</a></li>
+              <li><a href="#">Another action</a></li>
+              <li><a href="#">Something else here</a></li>
+              <li class="divider"></li>
+              <li class="dropdown-header">Nav header</li>
+              <li><a href="#">Separated link</a></li>
+              <li><a href="#">One more separated link</a></li>
+            </ul>
+          </li>
           {% else %}
           <li><a href="#">Персонаж: Неизвестен</a></li>
           {% end %}
         </ul>
-      </div>
+      </div><!--/.nav-collapse -->
     </div>
 
     <div class="container">
@@ -60,7 +88,7 @@
     {% end %}
 
     <!-- Include all compiled plugins (below), or include individual files as needed -->
-    {% comment <script src="{{ static_url('js/bootstrap.min.js') }}"></script> %}
+    <script src="{{ static_url('js/bootstrap.min.js') }}"></script>
 
     {% block addjs %}
     {% end %}
