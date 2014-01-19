@@ -3,29 +3,22 @@
   {% module xsrf_form_html() %}
   <div class="form-group">
     <select name='level' class='form-control'>
-      {% for i in ['Vanguard (10)', 'Assault (20)', 'HQ (40)'] %}
-      <option value='{{ i }}'{% if level == i %} selected{% end %}>{{ i }}</option>
+      {% for i in FLEET_TYPES %}
+      <option value='{{ i }}'{% if fleet.level == i %} selected{% end %}>{{ i }}</option>
       {% end %}
     </select>
   </div>
   <div class="form-group">
     <select name='ts_channel' class='form-control'>
-      {% for i in ['Shield-Флот 1',
-                   'Shield-Флот 2',
-                   'Shield-Флот 3',
-                   'Shield-Флот 4',
-                   'Shield-Флот 5',
-                   'Armor-Флот 1',
-                   'Armor-Флот 2',
-                   'PvP-Флот 1'] %}
-      <option value='{{ i }}'{% if ts_channel == i %} selected{% end %}>{{ i }}</option>
+      {% for i in TS_CHANNELS %}
+      <option value='{{ i }}'{% if fleet.ts_channel == i %} selected{% end %}>{{ i }}</option>
       {% end %}
     </select>
   </div>
   <div class="form-group">
     <input class='form-control' type='text' name='solar_system'
            placeholder="Система (необязательно)"
-           value='{{ solar_system }}' />
+           value='{{ fleet.solar_system }}' />
   </div>
   <div class="form-group">
     <button type="submit" class="btn btn-default">{{ submit }}</button>

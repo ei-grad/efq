@@ -5,19 +5,21 @@
 {% if fleets %}
   <h4>Флоты:</h4>
   {% for fleet in fleets %}
-  <p>{{ '{solar_system} - {level} - {fc} (очередь - {count})'.format(
-  count=len(fleet['queue']),
-  **fleet
-  ) }}
-  <form class="form-inline" method="POST" action="join">
-    {% module xsrf_form_html() %}
-    <input type='hidden' name='action' value='join' />
-    <input type='hidden' name='fc' value='{{ fleet['fc'] }}' />
-    <div class="form-group">
-      <button type="submit" class="btn btn-default btn-small">Встать в очередь</button>
+  <div class="row">
+    <div class="span8">
+      <h5>{{ fleet.solar_system }} - {{ fleet.level }} - {{ fleet.fc.name }} (в очереди - {{ len(fleet.queue) }})</h5>
     </div>
-  </form>
-  </p>
+    <div class="span4">
+      <form class="form-inline" method="POST" action="join">
+        {% module xsrf_form_html() %}
+        <input type='hidden' name='action' value='join' />
+        <input type='hidden' name='fc' value='{{ fleet.fc.name }}' />
+        <div class="form-group">
+          <button type="submit" class="btn btn-default btn-small">Встать в очередь</button>
+        </div>
+      </form>
+    </div>
+  </div>
   {% end %}
 {% else %}
   <p>Флотов сейчас нет, либо ФК не используют EFQ.</p>

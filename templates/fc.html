@@ -2,16 +2,16 @@
 
 {% block content %}
 
-{% module FleetForm(legend="Ваш флот", action="", submit="Сохранить", fleet=fleet) %}
+{% module FleetForm("Ваш флот", "save", "Сохранить", fleet) %}
 
 <br/>
 
-{% if fleet['queue'] %}
-<h4>Очередь ({{ len(fleet['queue']) }} человек):</h4>
+{% if fleet.queue %}
+<h4>Очередь ({{ len(fleet.queue) }} человек):</h4>
 
 <ol>
-{% for character in fleet['queue'] %}
-<li><a class="eve-invite-to-fleet">{{ character }}</a></li>
+{% for i in fleet.queue %}
+<li><a class="eve-invite-to-fleet">{{ i.name }}</a></li>
 {% end %}
 </ol>
 
@@ -22,6 +22,7 @@
 <br/>
 
 <form method="POST" action="dismiss">
+  {% module xsrf_form_html() %}
   <button type="submit" class="btn btn-danger">Распустить очередь</button>
 </form>
 
@@ -37,6 +38,7 @@ $(function() {
     $.get('/char_id', { name: character })
       .done(function(result) {
         CCPEVE.inviteToFleet(parseInt(result));
+        $.post('/pop', {character: character});
       });
   });
 });

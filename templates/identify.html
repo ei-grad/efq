@@ -2,8 +2,9 @@
 
 {% block content %}
 <p>Напишите в канал RAISA Shield следующий текст:</p>
-<pre>{{ session['key'] }}</pre>
+<pre>{{ key }}</pre>
 <form method=POST>
+  {% module xsrf_form_html() %}
   <button class="btn" type="submit">Готово!</button>
 </form>
 {% block msg %}{% end %}

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>RAISA EFQ</title>
+    <title>{{ TITLE }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Bootstrap -->
@@ -20,11 +20,11 @@
     <div class="navbar" role="navigation">
       <div class="container">
         <div class="navbar-header">
-          <a class="navbar-brand" href="/">EVE Online Fleet Queue</a>
+          <a class="navbar-brand" href="/">{{ TITLE }}</a>
         </div>
         <ul class="nav navbar-nav navbar-right">
           <li><a href="/admin">Админка</a></li>
-          <li><a href="#">Персонаж: {{ session.get('character', 'Неизвестен') }}</a></li>
+          <li><a href="#">Персонаж: {{ character.name if character is not None else 'Неизвестен' }}</a></li>
         </ul>
       </div>
     </div>
@@ -37,8 +37,26 @@
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://code.jquery.com/jquery.js"></script>
 
+    <script>
+    function getCookie(name) {
+      var r = document.cookie.match("\\b" + name + "=([^;]*)\\b");
+      return r ? r[1] : undefined;
+    }
+    $.ajaxSetup({headers: {'X-XSRFToken': getCookie("_xsrf")} });
+    </script>
+
+    {% if character %}
+    <script>
+    $(function(){
+        $.get('/poll', function() {
+          document.location.reload();
+        })
+    })
+    </script>
+    {% end %}
+
     <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="{{ static_url('js/bootstrap.min.js') }}"></script>
+    {% comment <script src="{{ static_url('js/bootstrap.min.js') }}"></script> %}
 
     {% block addjs %}
     {% end %}

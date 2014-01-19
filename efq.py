@@ -1,56 +1,143 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import logging
 from functools import wraps
 import re, os, binascii
-from json import dumps, loads
 
-from tornado import gen, ioloop, web, httpclient, stack_context
+from tornado import gen, ioloop, web, httpclient, stack_context, options
 from tornado.httputil import urlencode
 
-FLEETS = {
-    'Mia Cloks': {
-        'fc': 'Mia Cloks',
-        'solar_system': 'Qwe',
-        'ts_channel': 'Asd',
-        'level': 'Vanguard (10)',
-        'queue': ['Zwo Zateki'],
-    },
-}
+
+logger = logging.getLogger(__name__)
+
+TITLE = 'EVE Online Fleet Queue'
 
 ADMINS = [
-    'Mia Cloks',
-    'Grim Altero',
-    'Zwo Zateki',
+    u'Mia Cloks',
+    u'Grim Altero',
+    u'Zwo Zateki',
 ]
+
+
+CHARACTERS = {}
+
+
+def get_character(name, *args, **kwargs):
+    if name not in CHARACTERS:
+        CHARACTERS[name] = Character(name, *args, **kwargs)
+    return CHARACTERS[name]
+
+
+FLEETS = {}
+
+
+def get_fleet(fc, *args, **kwargs):
+    if fc not in FLEETS:
+        FLEETS[fc] = Fleet(fc, *args, **kwargs)
+    return FLEETS[fc]
+
+
+class Character(object):
+
+    def __init__(self, name):
+        logger.debug('Created character %s', name)
+        self.name = name
+        self.fleet = None
+        self.is_fc = False
+        self.callbacks = []
+
+    def refresh(self):
+        callbacks, self.callbacks = self.callbacks, []
+        for callback in callbacks:
+            ioloop.IOLoop.instance().add_callback(callback)
+
+
+class Fleet(object):
+
+    def __init__(self, fc, solar_system=None, ts_channel=None, level=None):
+        self._fc = fc
+        self.fcs = [fc]
+        fc.fleet = self
+        fc.is_fc = True
+        self.solar_system = solar_system
+        self.ts_channel = ts_channel
+        self.level = level
+        self.queue = []
+
+    @property
+    def fc(self):
+        return self._fc
+
+    def enqueue(self, character):
+        if character in self.queue:
+            self.queue.remove(character)
+        self.queue.append(character)
+        character.fleet = self
+        character.is_fc = False
+        for fc in self.fcs:
+            fc.refresh()
+        character.refresh()
+
+    def dequeue(self, character):
+        if character in self.queue:
+            self.queue.remove(character)
+        for fc in self.fcs:
+            fc.refresh()
+        character.fleet = None
+        character.refresh()
+
+    def dismiss(self, new_fc=None):
+        del FLEETS[self.fc]
+        queue = self.queue
+        fcs = self.fcs
+        fcs.remove(self.fc)
+
+        self.fc.fleet = None
+        self.fc.is_fc = False
+
+        if new_fc is None:
+            for fc in self.fcs:
+                if fc.callbacks:
+                    new_fc = fc
+                    break
+
+        if new_fc is not None:
+            new_fleet = get_fleet(new_fc, self.solar_system, self.ts_channel, self.level)
+            new_fleet.queue = self.queue
+            new_fleet.fcs = self.fcs
+        else:
+            new_fleet = None
+            for fc in fcs:
+                fc.is_fc = False
+
+        self.fc.refresh()
+        for fc in fcs:
+            fc.fleet = new_fleet
+            fc.refresh()
+        for character in queue:
+            character.fleet = new_fleet
+            character.refresh()
 
 
 class BaseHandler(web.RequestHandler):
 
+    login_required = True
+
     def prepare(self):
         super(BaseHandler, self).prepare()
-        session = self.get_secure_cookie('session', None)
-        if session is None:
-            key = binascii.b2a_hex(os.urandom(8)).decode('ascii')
-            self.session = {
-                'key': 'EFQKEY_%s' % key.upper(),
-            }
-            self.untouched_session = {}
-        else:
-            session = session.decode('utf-8')
-            self.session = loads(session)
-            self.untouched_session = loads(session)
-        self.character = self.session.get('character', None)
+        self.character = self.get_secure_cookie('character', None)
+        if self.character is not None:
+            self.character = get_character(self.character.decode('utf-8'))
+        if self.character is None and self.login_required:
+            self.redirect('/login')
 
     def render(self, *args, **kwargs):
-        if 'session' not in kwargs:
-            kwargs['session'] = self.session
+        kwargs.update({
+            'TITLE': TITLE,
+            'character': self.character,
+        })
         return super(BaseHandler, self).render(*args, **kwargs)
-
-    def finish(self, *args, **kwargs):
-        if self.session != self.untouched_session:
-            self.set_secure_cookie('session', dumps(self.session))
-        return super(BaseHandler, self).finish(*args, **kwargs)
 
 
 def get_identified_character(content, key):
@@ -59,144 +146,152 @@ def get_identified_character(content, key):
 
 class IdentifyHandler(BaseHandler):
 
+    login_required = False
+
     def get(self):
-        if 'key' in self.session:
-            self.render('identify.html')
-        else:
+        if self.character is not None:
             self.render('already_identified.html')
+        else:
+            key = self.get_secure_cookie('key', None)
+            if key is None:
+                key = binascii.b2a_hex(os.urandom(8)).decode('ascii')
+                self.set_secure_cookie('key', key)
+            self.render('identify.html', key=key)
 
     @gen.coroutine
     def post(self):
-        if 'key' in self.session:
-            response = yield httpclient.AsyncHTTPClient().fetch("http://eve-live.com/RAISA_Shield")
-            if response.code != 200:
-                error = u'Не удалось проверить сообщения. Попробуйте ещё раз.'
-                self.render('error.html', error=error)
-            elif self.session['key'] in response.body.decode('utf-8'):
-                self.session['character'] = get_identified_character(
-                    response.body.decode('utf-8'), self.session.pop('key')
-                )
+        key = self.get_secure_cookie('key', None)
+        if key is not None:
+            response = yield httpclient.AsyncHTTPClient().fetch(
+                "http://eve-live.com/RAISA_Shield"
+            )
+            content = response.body.decode('utf-8')
+            if key in content:
+                character = get_identified_character(content, key)
+                self.clear_cookie('key')
+                self.set_secure_cookie('character', character.encode('utf-8'))
                 self.render("identified.html")
             else:
-                self.render("identification_failed.html")
+                self.render("identification_failed.html", key=key)
+        else:
+            self.get()
 
 
 def get_fleets_list():
     return sorted(FLEETS.values(),
-                  key=lambda x: '%s:%s' % (x['level'], x['solar_system']))
+                  key=lambda x: '%s:%s' % (x.level, x.solar_system))
 
 
-class FleetsHandler(BaseHandler):
-
-    def get(self):
-        if self.character in FLEETS:
-            self.redirect('/fc')
-        elif 'fleet' in self.session:
-            if self.session['fleet'] in FLEETS and self.character in FLEETS[self.session['fleet']]['queue']:
-                self.redirect('/queue')
-            else:
-                del self.session['fleet']
-                self.render('fleets.html', fleets=get_fleets_list())
-        else:
-            self.render('fleets.html', fleets=get_fleets_list())
-
-    def post(self):
-        FLEETS[self.character] = {
-            'fc': self.character,
-            'ts_channel': self.get_argument('ts_channel'),
-            'level': self.get_argument('level'),
-            'solar_system': self.get_argument('solar_system') or u'система неизвестна',
-            'queue': [],
-        }
-        self.redirect('/fc')
-
-
-class JoinHandler(BaseHandler):
-    def post(self):
-        if 'fleet' not in self.session:
-            fc = self.get_argument('fc')
-            if fc in FLEETS:
-                queue = FLEETS[fc]['queue']
-                if self.character in queue:
-                    queue.remove(self.character)
-                queue.append(self.character)
-                self.session['fleet'] = fc
-                self.redirect('/queue')
-            else:
-                self.send_error(400, u'Этого флота уже нет!')
-        else:
-            self.send_error(400, u'Вы уже в очереди!')
-
-
-def fleet_required(func):
+def free_required(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        if 'fleet' not in self.session:
-            self.redirect('/')
-        elif self.session['fleet'] not in FLEETS or self.character not in FLEETS[self.session['fleet']]['queue']:
-            del self.session['fleet']
-            self.redirect('/')
+        if self.character.fleet is not None:
+            if self.character.is_fc == True:
+                self.redirect('/fc')
+            else:
+                self.redirect('/queue')
         else:
             return func(self, *args, **kwargs)
     return wrapper
 
 
-class LeaveHandler(BaseHandler):
-    @fleet_required
+def queue_required(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if self.character.fleet is None:
+            self.redirect('/')
+        elif self.character.is_fc == True:
+            self.redirect('/fc')
+        else:
+            return func(self, *args, **kwargs)
+    return wrapper
+
+
+def fc_required(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if self.character.fleet is None:
+            self.redirect('/')
+        elif self.character.is_fc == False:
+            self.redirect('/queue')
+        else:
+            return func(self, *args, **kwargs)
+    return wrapper
+
+
+class FleetsHandler(BaseHandler):
+
+    @free_required
+    def get(self):
+        self.render('fleets.html', fleets=get_fleets_list())
+
+    @free_required
     def post(self):
-        if 'fleet' in self.session:
-            if self.session['fleet'] in FLEETS:
-                queue = FLEETS[self.session['fleet']]['queue']
-                if self.character in queue:
-                    queue.remove(self.character)
-            del self.session['fleet']
+        get_fleet(self.character,
+                  self.get_argument('solar_system') or u'система выбирается',
+                  self.get_argument('ts_channel'),
+                  self.get_argument('level'))
+        self.redirect('/fc')
+
+
+class JoinHandler(BaseHandler):
+    @free_required
+    def post(self):
+        fleet = get_character(self.get_argument('fc')).fleet
+        if fleet is not None:
+            if self.character in fleet.queue:
+                fleet.dequeue(self.character)
+            fleet.enqueue(self.character)
+            self.redirect('/queue')
+        else:
+            self.redirect('/')
+
+
+class LeaveHandler(BaseHandler):
+    @queue_required
+    def post(self):
+        self.character.fleet.dequeue(self.character)
         self.redirect('/')
 
 
 class QueueHandler(BaseHandler):
-    @fleet_required
-    def get(self, **kwargs):
-        fleet = FLEETS[self.session['fleet']]
-        queue = fleet['queue']
+    @queue_required
+    def get(self):
         self.render('queue.html',
-                    fleet=fleet,
-                    count=len(queue),
-                    position=queue.index(self.character) + 1,
-                    **kwargs)
+                    fleet=self.character.fleet,
+                    queue=self.character.fleet.queue)
 
 
 class FCHandler(BaseHandler):
-
+    @fc_required
     def get(self):
-        if self.character in FLEETS:
-            self.render('fc.html', fleet=FLEETS[self.character])
-        else:
-            self.redirect('/')
+        self.render('fc.html', fleet=self.character.fleet)
 
+
+class SaveHandler(BaseHandler):
+    @fc_required
     def post(self):
-        if self.character in FLEETS:
-            FLEETS[self.character].update({
-                'ts_channel': self.get_argument('ts_channel'),
-                'level': self.get_argument('level'),
-                'solar_system': self.get_argument('solar_system'),
-            })
-            self.get()
-        else:
-            self.send_error(400)
+        fleet = self.character.fleet
+        fleet.ts_channel = self.get_argument('ts_channel')
+        fleet.level = self.get_argument('level')
+        fleet.solar_system = self.get_argument('solar_system')
+        self.redirect('/fc')
 
 
 def admin_required(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         return func(self, *args, **kwargs)
-        if self.character in ADMINS:
-            return func(self, *args, **kwargs)
-        else:
-            self.send_error(403)
+        #if self.character.name in ADMINS:
+        #    return func(self, *args, **kwargs)
+        #else:
+        #    self.send_error(403)
     return wrapper
 
 
 class AdminHandler(BaseHandler):
+
+    login_required = False
 
     @admin_required
     def get(self):
@@ -206,15 +301,25 @@ class AdminHandler(BaseHandler):
     def post(self):
         action = self.get_argument('action')
         if action == 'fake_character':
-            self.session['character'] = self.get_argument('character')
+            self.set_secure_cookie('character', self.get_argument('character'))
+            self.clear_cookie('key')
             return self.redirect('/')
-        self.render('admin.html')
+        else:
+            self.send_error(400)
 
 
 class DismissHandler(BaseHandler):
+    @fc_required
     def post(self):
-        if self.character in FLEETS:
-            del FLEETS[self.character]
+        self.character.fleet.dismiss()
+        self.redirect('/')
+
+
+class PopHandler(BaseHandler):
+    @fc_required
+    def post(self):
+        character = get_character(self.get_argument('character'))
+        self.character.fleet.dequeue(character)
 
 
 CALLBACKS = {}
@@ -223,10 +328,15 @@ CALLBACKS = {}
 class PollHandler(BaseHandler):
     @web.asynchronous
     def get(self):
-        if self.character not in CALLBACKS:
-            CALLBACKS[self.character] = []
-        CALLBACKS[self.character].append(stack_context.wrap(self.finish))
+        if self.character is not None:
+            self.cb = stack_context.wrap(self.finish)
+            self.character.callbacks.append(self.cb)
+        else:
+            self.finish()
 
+    def on_connection_close(self):
+        if self.cb in self.character.callbacks:
+            self.character.callbacks.remove(self.cb)
 
 class CharacterIDHandler(web.RequestHandler):
 
@@ -238,18 +348,15 @@ class CharacterIDHandler(web.RequestHandler):
         if character not in self.CHARACTERS:
             url = "https://api.eveonline.com/eve/CharacterID.xml.aspx"
             url = '?'.join([url, urlencode({'names': character})])
-            print(url)
             response = yield httpclient.AsyncHTTPClient().fetch(url)
-            print(response.body)
             m = re.search(r'characterID="(\d+)"', response.body.decode('utf-8'))
             if m is not None:
-                char_id = m.group(1)
-                self.CHARACTERS[character] = char_id
+                self.CHARACTERS[character] = m.group(1)
+                self.finish(self.CHARACTERS[character])
             else:
-                return self.send_error(400)
+                self.send_error(400)
         else:
-            char_id = self.CHARACTERS[character]
-        self.finish(char_id)
+            self.finish(self.CHARACTERS[character])
 
 
 try:
@@ -269,7 +376,9 @@ application = web.Application(
         (r"/join", JoinHandler),
         (r"/leave", LeaveHandler),
         (r"/dismiss", DismissHandler),
+        (r"/pop", PopHandler),
         (r"/fc", FCHandler),
+        (r"/save", SaveHandler),
         (r"/admin", AdminHandler),
         (r"/poll", PollHandler),
         (r"/char_id", CharacterIDHandler),
@@ -279,9 +388,17 @@ application = web.Application(
     static_path='static',
     ui_modules=ui,
     debug=True,
+    xsrf_token=True,
 )
 
 
 if __name__ == "__main__":
+    options.parse_command_line()
     application.listen(8888)
+    get_fleet(
+        get_character(u'Mia Cloks'),
+        'Vilur',
+        'Shield-Флот 1',
+        'HQ (40)'
+    ).enqueue(get_character(u'Zwo Zateki'))
     ioloop.IOLoop.instance().start()
