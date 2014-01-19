@@ -1,15 +1,26 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<p>Вы стоите в очереди во флот.</p>
-<p>ФК: <b>{{ fleet.fc.name }}</b></p>
-<p>Тип флота: <b>{{ fleet.fleet_type }}</b></p>
-<p>Ваша позиция: <b>{{ queue.index(character) + 1 }}</b> из {{ len(queue) }}</p>
+<div class="well">
+  <p>
+Вы стоите в очереди во флот. Ваша позиция: <b>{{ queue.index(character) + 1 }}</b> из {{ len(queue) }}<br/>
+ФК: <b>{{ fleet.fc.name }}</b><br/>
+Тип флота: <b>{{ fleet.fleet_type }}</b><br/>
+  </p>
+  <form method="POST" action="leave">
+    {% module xsrf_form_html() %}
+    <button type="submit" class="btn btn-default">Покинуть очередь</button>
+  </form>
+</div>
 
-<br/>
-
-<form method="POST" action="leave">
-  {% module xsrf_form_html() %}
-  <button type="submit" class="btn btn-default">Покинуть очередь</button>
-</form>
+<div class="panel panel-primary">
+<div class="panel-heading">Очередь ({{ len(fleet.queue) }} человек):</div>
+<ol class="list-group">
+{% for i in fleet.queue %}
+<li class="list-group-item">
+<a onclick='javascript:CCPEVE.showInfo(1377, "{{ i.char_id }}");'>{{ i.name }}</a>
+</li>
+{% end %}
+</ol>
+</div>
 {% end %}
