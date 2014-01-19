@@ -3,7 +3,9 @@
 
 import logging
 from functools import wraps
-import re, os, binascii
+import re
+import os
+import binascii
 
 from tornado import gen, ioloop, web, httpclient, stack_context
 from tornado.options import options, define, parse_command_line
@@ -105,7 +107,9 @@ class Fleet(object):
                     break
 
         if new_fc is not None:
-            new_fleet = get_fleet(new_fc, self.solar_system, self.ts_channel, self.level)
+            new_fleet = get_fleet(
+                new_fc, self.solar_system, self.ts_channel, self.level
+            )
             new_fleet.queue = self.queue
             new_fleet.fcs = self.fcs
         else:
@@ -188,7 +192,7 @@ def free_required(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         if self.character.fleet is not None:
-            if self.character.is_fc == True:
+            if self.character.is_fc is True:
                 self.redirect('/fc')
             else:
                 self.redirect('/queue')
@@ -202,7 +206,7 @@ def queue_required(func):
     def wrapper(self, *args, **kwargs):
         if self.character.fleet is None:
             self.redirect('/')
-        elif self.character.is_fc == True:
+        elif self.character.is_fc is True:
             self.redirect('/fc')
         else:
             return func(self, *args, **kwargs)
@@ -214,7 +218,7 @@ def fc_required(func):
     def wrapper(self, *args, **kwargs):
         if self.character.fleet is None:
             self.redirect('/')
-        elif self.character.is_fc == False:
+        elif self.character.is_fc is False:
             self.redirect('/queue')
         else:
             return func(self, *args, **kwargs)
@@ -342,6 +346,7 @@ class PollHandler(BaseHandler):
         if self.cb in self.character.callbacks:
             self.character.callbacks.remove(self.cb)
 
+
 class CharacterIDHandler(web.RequestHandler):
 
     CHARACTERS = {}
@@ -353,7 +358,8 @@ class CharacterIDHandler(web.RequestHandler):
             url = "https://api.eveonline.com/eve/CharacterID.xml.aspx"
             url = '?'.join([url, urlencode({'names': character})])
             response = yield httpclient.AsyncHTTPClient().fetch(url)
-            m = re.search(r'characterID="(\d+)"', response.body.decode('utf-8'))
+            content = response.body.decode('utf-8')
+            m = re.search(r'characterID="(\d+)"', content)
             if m is not None:
                 self.CHARACTERS[character] = m.group(1)
                 self.finish(self.CHARACTERS[character])
@@ -371,9 +377,6 @@ except:
         f.write(cookie_secret)
 
 
-define('devel', type=bool, default=False)
-
-
 if __name__ == "__main__":
 
     import ui
@@ -385,10 +388,10 @@ if __name__ == "__main__":
             (r"/queue", QueueHandler),
             (r"/join", JoinHandler),
             (r"/leave", LeaveHandler),
-            (r"/dismiss", DismissHandler),
-            (r"/pop", PopHandler),
             (r"/fc", FCHandler),
             (r"/save", SaveHandler),
+            (r"/pop", PopHandler),
+            (r"/dismiss", DismissHandler),
             (r"/admin", AdminHandler),
             (r"/poll", PollHandler),
             (r"/char_id", CharacterIDHandler),
@@ -400,10 +403,15 @@ if __name__ == "__main__":
         debug=options.devel,
         xsrf_token=True,
     )
+
+    define('devel', type=bool, default=False)
     define('host', type=str, default='localhost')
     define('port', type=int, default=8888)
+
     parse_command_line()
+
     application.listen(options.port, options.host)
+
     if options.devel:
         get_fleet(
             get_character(u'Mia Cloks'),
@@ -411,4 +419,5 @@ if __name__ == "__main__":
             'Shield-Флот 1',
             'HQ (40)'
         ).enqueue(get_character(u'Zwo Zateki'))
+
     ioloop.IOLoop.instance().start()
