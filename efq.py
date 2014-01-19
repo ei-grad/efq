@@ -125,9 +125,7 @@ class Fleet(object):
                     break
 
         if new_fc is not None:
-            new_fleet = get_fleet(
-                new_fc, self.solar_system, self.ts_channel, self.level
-            )
+            new_fleet = get_fleet(new_fc, self.fleet_type)
             new_fleet.queue = self.queue
             new_fleet.fcs = self.fcs
         else:
@@ -227,8 +225,7 @@ class IdentifyHandler(BaseHandler):
 
 
 def get_fleets_list():
-    return sorted(FLEETS.values(),
-                  key=lambda x: '%s:%s' % (x.level, x.solar_system))
+    return sorted(FLEETS.values(), key=lambda x: '%s:%s' % (x.fleet_type))
 
 
 
