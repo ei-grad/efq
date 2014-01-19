@@ -244,8 +244,10 @@ class FleetsHandler(BaseFreeHandler):
 
 
 class JoinHandler(BaseFreeHandler):
+    @gen.coroutine
     def post(self):
-        fleet = get_character(self.get_argument('fc')).fleet
+        character = yield get_character(self.get_argument('fc'))
+        fleet = character.fleet
         if fleet is not None:
             if self.character in fleet.queue:
                 fleet.dequeue(self.character)
