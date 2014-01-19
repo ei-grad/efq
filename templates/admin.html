@@ -16,13 +16,13 @@
 </div>
 
 <div class="well">
-<form method="POST" class="form-inline">
+<form method="POST" class="form">
   <legend>Типы флотов</legend>
   {% module xsrf_form_html() %}
   <input type="hidden" name="action" value="fleet_types" />
   <div class="form-group">
-    <textarea rows="5" class="form-control" name="fleet_types" />{% for i in fleet_types %}
-{{ i }}{% end %}</textarea>
+    <textarea rows="5" class="form-control" name="fleet_types" />{% for i in FLEET_TYPES %}{{ i }}
+{% end %}</textarea>
     <span class="help-block">По одному в каждой строчке.</span>
   </div>
   <div class="form-group">

@@ -8,7 +8,7 @@
   <div class="form-group">
     <label for="inputEmail" class="col-lg-2 control-label">Корабль</label>
     <div class="col-lg-10">
-      <input type="text" class="form-control" id="inputEmail" name="ship" placeholder="Ship Type">
+      <input type="text" class="form-control" id="inputEmail" name="ship" placeholder="Ship Type"{% if character.fit %} value="{{ character.ship }}"{% end %}>
       <span class="help-block">Введите тип вашего корабля, с точностью до регистра. Например:
         {% for n, ship in reversed(list(enumerate(reversed(PREFERRED_SHIPS)))) %}
         <a href="#" style="border-bottom: 1px dashed #999; color: #C8C8C8;" onclick='javascript:$("input[name=ship]").val("{{ ship }}")'>{{ ship }}</a>{% if n %},{% end %}

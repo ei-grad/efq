@@ -234,15 +234,16 @@ class BaseHandler(web.RequestHandler):
                 }[status])
 
     def render(self, *args, **kwargs):
-        kwargs.update({
+        default_kwargs = {
             'TITLE': TITLE,
             'FLEET_TYPES': FLEET_TYPES,
             'PREFERRED_SHIPS': PREFERRED_SHIPS,
             'FREE_CHARS': self.FREE_CHARS,
             'ONLINE': self.ONLINE,
             'character': self.character,
-        })
-        return super(BaseHandler, self).render(*args, **kwargs)
+        }
+        default_kwargs.update(kwargs)
+        return super(BaseHandler, self).render(*args, **default_kwargs)
 
 
 def get_identified_character(content, key):
@@ -270,12 +271,13 @@ class IdentifyHandler(BaseHandler):
             response = yield httpclient.AsyncHTTPClient().fetch(
                 "http://eve-live.com/RAISA_Shield"
             )
-            content = response.body.decode('utf-8')
+            content = response.body
             if key in content:
                 character = get_identified_character(content, key)
                 self.clear_cookie('key')
                 self.set_secure_cookie('character', character.encode('utf-8'))
-                self.render("identified.html")
+                character = yield get_character(character)
+                self.render("identified.html", character=character)
             else:
                 self.render("identification_failed.html", key=key)
         else:
