@@ -5,6 +5,7 @@
 
 <form method="POST">
   <legend>Загрузить новый фит</legend>
+  {% module xsrf_form_html() %}
   <div class="form-group">
     <label for="inputEmail" class="col-lg-2 control-label">Корабль</label>
     <div class="col-lg-10">

@@ -537,7 +537,7 @@ if __name__ == "__main__":
         static_path='static',
         ui_modules=ui,
         debug=options.devel,
-        xsrf_token=True,
+        xsrf_cookies=True,
     )
 
     application.listen(options.port, options.host)
