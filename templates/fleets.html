@@ -10,15 +10,15 @@
       <ul class="list-group">
       {% for fleet in fleets %}
         <li class="list-group-item">
-        {{ fleet.fleet_type }} - {{ fleet.fc.name }} (в очереди - {{ len(fleet.queue) }})
-        <form class="form-inline pull-right" method="POST" action="join">
-          {% module xsrf_form_html() %}
-          <input type='hidden' name='action' value='join' />
-          <input type='hidden' name='fc' value='{{ fleet.fc.name }}' />
-          <div class="form-group">
-            <button type="submit" class="btn btn-default btn-xs">Встать в очередь</button>
-          </div>
-        </form>
+          <form class="form-inline" style="display: inline" method="POST" action="join">
+            {% module xsrf_form_html() %}
+            <input type='hidden' name='action' value='join' />
+            <input type='hidden' name='fc' value='{{ fleet.fc.name }}' />
+            <div class="form-group">
+              <button type="submit" class="btn btn-default btn-xs"><i class="fa fa-sign-in"></i></button>
+            </div>
+          </form>
+          {{ fleet.fleet_type }} - {{ fleet.fc.name }} (в очереди - {{ len(fleet.queue) }})
         </li>
       {% end %}
       </ul>
@@ -31,15 +31,18 @@
     <div class="panel panel-default">
       <div class="panel-heading">Мой фит:</div>
       <div class="panel-body">
-        {% module Fit(character) %}
-        <a class="btn btn-xs btn-default pull-right" href="/fit">Загрузить фит</a>
+        {% if character.fit %}
+          {% module Fit(character, True) %}
+        {% else %}
+          <a href="/fit">Загрузить</a>
+        {% end %}
       </div>
     </div>
   </div>
   <div class="col-md-3">
     <div class="panel panel-default">
       <div class="panel-heading">Сейчас Online:</div>
-      <!-- сгруппировать по кораблям! -->
+      <!-- TODO: сгруппировать по кораблям! -->
       <div class="panel-body">
       {{ ', '.join(i.name for i in sorted(ONLINE, key=lambda x: x.name)) }}
       </div>

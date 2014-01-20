@@ -19,7 +19,7 @@ import ui
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_TITLE = 'EVE Online Fleet Queue'
+DEFAULT_TITLE = 'Fleet Queue'
 
 FLEET_TYPES = ['Vanguard (10)', 'Assault (20)', 'HQ (40)']
 

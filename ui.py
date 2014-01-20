@@ -4,5 +4,5 @@ from tornado.web import UIModule
 
 
 class Fit(UIModule):
-    def render(self, character):
-        return self.render_string('m_fit.html', character=character)
+    def render(self, character, edit=False):
+        return self.render_string('m_fit.html', character=character, edit=edit)

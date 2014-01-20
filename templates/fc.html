@@ -24,24 +24,29 @@
 
 {% if fleet.queue %}
 <div class="panel panel-primary" style="margin-top: 5px;">
-  <div class="panel-heading">Очередь ({{ len(fleet.queue) }} человек):</div>
-  <ol class="list-group">
-    {% for i in fleet.queue %}
+  <div class="panel-heading">Запас ({{ len(fleet.queue) }}):</div>
+  <ul class="list-group">
+    {% for n, i in enumerate(fleet.queue) %}
     <li class="list-group-item">
-    <a onclick='javascript:CCPEVE.showInfo(1377, "{{ i.char_id }}");'>{{ i.name }}</a> - 
-    {% module Fit(i) %}
-    <div class="pull-right">
-      <button class="btn btn-xs btn-primary"
-        onclick='javascript:fleetInvite("{{ i.name }}", "{{ i.char_id }}")'
-        ><i class="fa fa-check"></i> Принять</button>
-      <button class="btn btn-xs btn-warning"
-        onclick='javascript:fleetDecline("{{ i.name }}", "{{ i.char_id }}")'
-        ><i class="fa fa-wheelchair"></i> Отказать</button>
-    </div>
+      <div class="row">
+        <div class="col-sm-8">
+          {{ n + 1 }}.
+          <a onclick='javascript:CCPEVE.showInfo(1377, "{{ i.char_id }}");'>{{ i.name }}</a> -
+          {% module Fit(i) %}
+        </div>
+        <div class="col-sm-4" style="text-align: right">
+          <button class="btn btn-xs btn-success"
+            onclick='javascript:fleetInvite("{{ i.name }}", "{{ i.char_id }}")'
+            ><i class="fa fa-check"></i></button>
+          <button class="btn btn-xs btn-danger"
+            onclick='javascript:fleetDecline("{{ i.name }}", "{{ i.char_id }}")'
+            ><i class="fa fa-wheelchair"></i></button>
+        </div>
+      </div>
     </li>
     {% end %}
-  </ol>
-  </div>
+  </ul>
+</div>
 {% else %}
 <br/>
 <p>Очередь в этот флот пуста.</p>

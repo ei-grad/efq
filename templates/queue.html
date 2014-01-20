@@ -3,7 +3,7 @@
 {% block content %}
 <div class="well">
   <p>Вы стоите в очереди во флот. Ваша позиция: <b>{{ queue.index(character) + 1 }}</b> из {{ len(queue) }}</p>
-  <p>Фит (<a href="/fit">изменить</a>): {% module Fit(character) %}</p>
+  <p>Фит: {% module Fit(character, True) %}</p>
   <p>ФК: <b>{{ fleet.fc.name }}</b><br/>Тип флота: <b>{{ fleet.fleet_type }}</b></p>
   <form method="POST" action="leave">
     {% module xsrf_form_html() %}
