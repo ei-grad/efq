@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from datetime import timedelta
 from functools import wraps
 import binascii
 import json
@@ -12,6 +11,8 @@ import re
 from tornado import gen, ioloop, web, httpclient, stack_context
 from tornado.options import options, define, parse_command_line
 from tornado.httputil import urlencode
+
+from toredis import Redis
 
 import ui
 
@@ -61,24 +62,36 @@ ADMINS = [
 
 CHARACTERS = {}
 
+redis = Redis()
 
 @gen.coroutine
 def get_character(name):
+
     if name not in CHARACTERS:
+
         character = Character(name)
         CHARACTERS[name] = character
-        while True:
-            url = "https://api.eveonline.com/eve/CharacterID.xml.aspx"
-            url = '?'.join([url, urlencode({'names': name})])
-            response = yield httpclient.AsyncHTTPClient().fetch(url)
-            content = response.body.decode('utf-8')
-            m = re.search(r'characterID="(\d+)"', content)
-            if m is not None:
-                character.char_id = m.group(1)
-                logger.debug('Got %s char_id: %s', name, character.char_id)
-                break
-            _ = yield gen.Task(ioloop.IOLoop.instance().add_timeout,
-                               timedelta(seconds=5))
+
+        url = "https://api.eveonline.com/eve/CharacterID.xml.aspx"
+        url = '?'.join([url, urlencode({'names': name})])
+        response = yield httpclient.AsyncHTTPClient().fetch(url)
+        content = response.body.decode('utf-8')
+
+        m = re.search(r'characterID="(\d+)"', content)
+        if m is not None:
+            character.char_id = m.group(1)
+            logger.debug('Got %s char_id: %s', name, character.char_id)
+        else:
+            del CHARACTERS[name]
+            raise Exception("Can't get char_id for %s!" % name)
+
+        try:
+            fit = yield gen.Task(redis.get, 'efq:fitting:%s' % name)
+            if fit:
+                character.fit = fit
+        except:
+            logger.error("Failed to get fit from redis!", exc_info=True)
+
     raise gen.Return(CHARACTERS[name])
 
 
@@ -503,6 +516,10 @@ class FitHandler(BaseHandler):
                     ))
 
         self.character.fit = fit
+
+        redis.set('efq:fitting:%s' % self.character.name,
+                  self.character.fit,
+                  callback=lambda x: None)
 
         if self.character.fleet is not None:
             for fc in self.character.fleet.fcs:
