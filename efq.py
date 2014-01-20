@@ -577,6 +577,6 @@ if __name__ == "__main__":
         xsrf_cookies=True,
     )
 
-    application.listen(options.port, options.host)
+    application.listen(options.port, options.host, xheaders=True)
 
     ioloop.IOLoop.instance().start()
