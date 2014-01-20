@@ -19,7 +19,10 @@ import ui
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_TITLE = 'EVE Online Fleet Queue'
+
 FLEET_TYPES = ['Vanguard (10)', 'Assault (20)', 'HQ (40)']
+
 PREFERRED_SHIPS = [
     'Vindicator',
     'Machariel',
@@ -190,7 +193,7 @@ class BaseHandler(web.RequestHandler):
 
     FREE_CHARS = set()
     ONLINE = set()
-    TITLE = 'EVE Online Fleet Queue'
+    TITLE = DEFAULT_TITLE
 
     login_required = True
     status_required = None
@@ -509,7 +512,7 @@ except:
 
 if __name__ == "__main__":
 
-    define('title', type=str, default='')
+    define('title', type=str, default=DEFAULT_TITLE)
     define('devel', type=bool, default=False)
     define('host', type=str, default='localhost')
     define('port', type=int, default=8888)
