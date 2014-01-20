@@ -29,7 +29,7 @@ PREFERRED_SHIPS = [
     'Nightmar',
     'Basilisk',
     'Scimitar',
-    'Vargur,'
+    'Vargur',
     'Loki',
     'Megathron Navy Issue',
     'Bhaalgorn',
