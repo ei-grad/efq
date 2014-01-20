@@ -494,6 +494,8 @@ class FitHandler(BaseHandler):
             for fc in self.character.fleet.fcs:
                 fc.refresh()
 
+        self.character.refresh()
+
         self.redirect('/')
 
 
