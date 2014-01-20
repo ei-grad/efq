@@ -18,7 +18,6 @@ import ui
 
 logger = logging.getLogger(__name__)
 
-TITLE = 'EVE Online Fleet Queue'
 
 FLEET_TYPES = ['Vanguard (10)', 'Assault (20)', 'HQ (40)']
 PREFERRED_SHIPS = [
@@ -191,6 +190,7 @@ class BaseHandler(web.RequestHandler):
 
     FREE_CHARS = set()
     ONLINE = set()
+    TITLE = 'EVE Online Fleet Queue'
 
     login_required = True
     status_required = None
@@ -237,7 +237,7 @@ class BaseHandler(web.RequestHandler):
 
     def render(self, *args, **kwargs):
         default_kwargs = {
-            'TITLE': TITLE,
+            'TITLE': self.TITLE,
             'FLEET_TYPES': FLEET_TYPES,
             'PREFERRED_SHIPS': PREFERRED_SHIPS,
             'FREE_CHARS': self.FREE_CHARS,
@@ -509,11 +509,14 @@ except:
 
 if __name__ == "__main__":
 
+    define('title', type=str, default='')
     define('devel', type=bool, default=False)
     define('host', type=str, default='localhost')
     define('port', type=int, default=8888)
 
     parse_command_line()
+
+    BaseHandler.TITLE = options.title
 
     application = web.Application(
         [
