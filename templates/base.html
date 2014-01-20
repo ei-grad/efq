@@ -55,6 +55,14 @@
     </div>
 
     <div class="container">
+
+      {% for msgid, message, cls in messages %}
+      <div id="{{ msgid }}" class="alert alert-{{ cls }}">
+          <button type="button" class="close" onclick='javascript:readMessage("{{ msgid }}")'>&times;</button>
+          <p>{{ message }}</p>
+      </div>
+      {% end %}
+
       {% block content %}
       {% end %}
     </div>
@@ -69,6 +77,10 @@
     }
     function deleteCookie(name) {
       document.cookie = name+'="";-1; path=/';
+    }
+    function readMessage(msg) {
+      $.post('/read', {msg: msg});
+      $('#' + msg).remove();
     }
     function logout() {
       deleteCookie("character");

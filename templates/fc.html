@@ -3,54 +3,77 @@
 {% block content %}
 
 <div class="row">
-  <div class="col-sm-6">
-    <form method='POST' class="form-inline" action="type">
-      {% module xsrf_form_html() %}
-      <select name='fleet_type' class='input-xs col-xs-6'>
-        {% for i in FLEET_TYPES %}
-        <option value='{{ i }}'{% if fleet.fleet_type == i %} selected{% end %}>{{ i }}</option>
-        {% end %}
-      </select>
-      <button type="submit" class="btn btn-default btn-xs col-xs-6">Изменить</button>
-    </form>
+
+<div class="col-md-6">
+  {% if fleet.queue %}
+  <div class="panel panel-primary">
+    <div class="panel-heading" data-toggle="collapse" data-target="#fleet-queue">Запас ({{ len(fleet.queue) }}):</div>
+    <ul class="list-group collapse in" id="fleet-queue">
+      {% for n, i in enumerate(fleet.queue) %}
+      <li class="list-group-item">
+        <div class="row">
+          <div class="col-sm-8">
+            {{ n + 1 }}.
+            <a onclick='javascript:CCPEVE.showInfo(1377, "{{ i.char_id }}");'>{{ i.name }}</a> -
+            {% module Fit(i) %}
+          </div>
+          <div class="col-sm-4" style="text-align: right">
+            <button class="btn btn-xs btn-success"
+              onclick='javascript:fleetInvite("{{ i.name }}", "{{ i.char_id }}")'
+              ><i class="fa fa-check"></i></button>
+            <button class="btn btn-xs btn-danger"
+              onclick='javascript:fleetDecline("{{ i.name }}", "{{ i.char_id }}")'
+              ><i class="fa fa-wheelchair"></i></button>
+          </div>
+        </div>
+      </li>
+      {% end %}
+    </ul>
   </div>
-  <div class="col-sm-6">
-    <form method="POST" action="dismiss" class="form-inline">
-      {% module xsrf_form_html() %}
-      <button type="submit" class="btn btn-danger btn-xs btn-block pull-right">Распустить очередь</button>
-    </form>
+  {% else %}
+  <div class="well">Очередь в этот флот пуста.</div>
+  {% end %}
+</div>
+
+<div class="col-md-6">
+  <div class="panel panel-default">
+    <div class="panel-heading" data-toggle="collapse" data-target="#fleet-settings">
+      <h4 class="panel-title">Параметры флота</h4>
+    </div>
+    <div class="panel-body collapse in" id="fleet-settings">
+      <form method='POST' class="form" action="type">
+        {% module xsrf_form_html() %}
+        <legend>Тип флота</legend>
+        <div class="form-group">
+          <select name='fleet_type' class='form-control'>
+            {% for i in FLEET_TYPES %}
+            <option {% if fleet.fleet_type == i %} selected{% end %}>{{ i }}</option>
+            {% end %}
+          </select>
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-default form-control">Изменить</button>
+        </div>
+      </form>
+      <form method="POST" action="addfc" class="form">
+        <legend>Передача флота</legend>
+        {% module xsrf_form_html() %}
+        <div class="form-group">
+          <input name="character" class="form-control" />
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-default">Добавить ФК</button>
+        </div>
+      </form>
+      <form method="POST" action="dismiss" class="form">
+        {% module xsrf_form_html() %}
+        <button type="submit" class="btn btn-danger">Уйти из флота</button>
+      </form>
+    </div>
   </div>
 </div>
 
-{% if fleet.queue %}
-<div class="panel panel-primary" style="margin-top: 5px;">
-  <div class="panel-heading">Запас ({{ len(fleet.queue) }}):</div>
-  <ul class="list-group">
-    {% for n, i in enumerate(fleet.queue) %}
-    <li class="list-group-item">
-      <div class="row">
-        <div class="col-sm-8">
-          {{ n + 1 }}.
-          <a onclick='javascript:CCPEVE.showInfo(1377, "{{ i.char_id }}");'>{{ i.name }}</a> -
-          {% module Fit(i) %}
-        </div>
-        <div class="col-sm-4" style="text-align: right">
-          <button class="btn btn-xs btn-success"
-            onclick='javascript:fleetInvite("{{ i.name }}", "{{ i.char_id }}")'
-            ><i class="fa fa-check"></i></button>
-          <button class="btn btn-xs btn-danger"
-            onclick='javascript:fleetDecline("{{ i.name }}", "{{ i.char_id }}")'
-            ><i class="fa fa-wheelchair"></i></button>
-        </div>
-      </div>
-    </li>
-    {% end %}
-  </ul>
-</div>
-{% else %}
-<br/>
-<p>Очередь в этот флот пуста.</p>
-{% end %}
+</div> <!-- row -->
 
 {% end %}
 

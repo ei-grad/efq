@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+from uuid import uuid1
 from functools import wraps
 import binascii
 import json
@@ -113,6 +114,7 @@ class Character(object):
         self.is_fc = False
         self.is_admin = name in ADMINS
         self.fit = None
+        self.messages = []
         self.callbacks = []
 
     @property
@@ -121,6 +123,14 @@ class Character(object):
             return TYPES_BY_ID.get(self.fit.split(':', 1)[0],
                                    {'name': 'Неопределен'})['name']
         return 'Неопределен'
+
+    def add_message(self, message, cls='info'):
+        self.messages.append((str(uuid1()), message, cls))
+
+    def remove_message(self, msgid):
+        for i in list(self.messages):
+            if i[0] == msgid:
+                self.messages.remove(i)
 
     def refresh(self):
         callbacks, self.callbacks = self.callbacks, []
@@ -169,40 +179,64 @@ class Fleet(object):
         for i in self.queue:
             i.refresh()
 
-    def dismiss(self, new_fc=None):
-        del FLEETS[self.fc]
+    def dismiss(self, character, new_fc=None):
+
+        assert character.fleet == self
+
         queue = self.queue
         fcs = self.fcs
-        fcs.remove(self.fc)
 
-        self.fc.fleet = None
-        self.fc.is_fc = False
+        if character is self.fc:
 
-        if new_fc is None:
-            for fc in self.fcs:
-                if fc.callbacks:
-                    new_fc = fc
-                    break
+            self.fc.fleet = None
+            self.fc.is_fc = False
+            self.fc.refresh()
 
-        if new_fc is not None:
-            new_fleet = get_fleet(new_fc, self.fleet_type)
-            new_fleet.queue = self.queue
-            new_fleet.fcs = self.fcs
+            del FLEETS[self.fc]
+
+            fcs.remove(self.fc)
+
+            if new_fc is None:
+                for fc in self.fcs:
+                    if fc.callbacks:
+                        new_fc = fc
+                        break
+
+            if new_fc is not None:
+
+                new_fleet = get_fleet(new_fc, self.fleet_type)
+                new_fleet.queue = self.queue
+                new_fleet.fcs = self.fcs
+
+                for i in fcs + queue:
+                    i.fleet = new_fleet
+
+            else:
+
+                for i in fcs + queue:
+                    i.fleet = None
+                    i.is_fc = False
+                    i.add_message('Флот был распущен.')
+
         else:
-            new_fleet = None
-            for fc in fcs:
-                fc.is_fc = False
 
-        self.fc.refresh()
-        for fc in fcs:
-            fc.fleet = new_fleet
-            fc.refresh()
-        for character in queue:
-            character.fleet = new_fleet
-            character.refresh()
+            self.fcs.remove(character)
+            character.fleet = None
+            character.is_fc = False
+
+        for i in fcs:
+            i.refresh()
+
+        for i in queue:
+            i.refresh()
+
+        for i in BaseHandler.FREE_CHARS:
+            i.refresh()
 
 
 class BaseHandler(web.RequestHandler):
+
+    uuid = str(uuid1())
 
     FREE_CHARS = set()
     ONLINE = set()
@@ -226,6 +260,9 @@ class BaseHandler(web.RequestHandler):
             self.redirect('/login')
         else:
             self.check_status_required()
+
+    def add_message(self, message, cls='info'):
+        self.character.add_message(message, cls)
 
     def get_character_status(self):
         if self.character is None:
@@ -263,6 +300,7 @@ class BaseHandler(web.RequestHandler):
             'ONLINE': self.ONLINE,
             'reload_on_poll': self.reload_on_poll,
             'character': self.character,
+            'messages': self.character.messages,
         }
         default_kwargs.update(kwargs)
         return super(BaseHandler, self).render(*args, **default_kwargs)
@@ -376,9 +414,7 @@ class TypeHandler(BaseFCHandler):
 
 class DismissHandler(BaseFCHandler):
     def post(self):
-        self.character.fleet.dismiss()
-        for character in self.FREE_CHARS:
-            character.refresh()
+        self.character.fleet.dismiss(self.character)
         self.redirect('/')
 
 
@@ -386,14 +422,31 @@ class InviteHandler(BaseFCHandler):
     @gen.coroutine
     def post(self):
         character = yield get_character(self.get_argument('character'))
+        character.add_message('Вы были приняты во флот', 'success')
         self.character.fleet.dequeue(character)
+        self.redirect('/fc')
 
 
 class DeclineHandler(BaseFCHandler):
     @gen.coroutine
     def post(self):
         character = yield get_character(self.get_argument('character'))
+        character.add_message('Вы были исключены из очереди', 'danger')
         self.character.fleet.dequeue(character)
+        self.redirect('/fc')
+
+
+class AddFCHandler(BaseFCHandler):
+    @gen.coroutine
+    def post(self):
+        character = yield get_character(self.get_argument('character'))
+        if character.fleet is None:
+            fleet = self.character.fleet
+            fleet.fcs.append(character)
+            character.fleet = fleet
+            character.is_fc = True
+            character.refresh()
+        self.redirect('/fc')
 
 
 class PollHandler(BaseHandler):
@@ -401,10 +454,14 @@ class PollHandler(BaseHandler):
     @web.asynchronous
     def get(self):
         if self.character is not None:
-            self.cb = stack_context.wrap(self.finish)
-            if self.character not in self.ONLINE:
-                self.ONLINE.add(self.character)
-            self.character.callbacks.append(self.cb)
+            if self.get_secure_cookie('uuid') != self.uuid:
+                self.set_secure_cookie('uuid', self.uuid)
+                self.finish()
+            else:
+                self.cb = stack_context.wrap(self.finish)
+                if self.character not in self.ONLINE:
+                    self.ONLINE.add(self.character)
+                self.character.callbacks.append(self.cb)
         else:
             self.finish()
 
@@ -533,6 +590,11 @@ class FitHandler(BaseHandler):
         self.redirect('/')
 
 
+class ReadHandler(BaseHandler):
+    def post(self):
+        self.character.remove_message(self.get_argument('msg'))
+
+
 try:
     cookie_secret = open('.cookie_secret', 'rb').read()
 except:
@@ -555,6 +617,7 @@ if __name__ == "__main__":
     application = web.Application(
         [
             (r"/", FleetsHandler),
+            (r"/addfc", AddFCHandler),
             (r"/admin", AdminHandler),
             (r"/char_id", CharacterIDHandler),
             (r"/decline", DeclineHandler),
@@ -567,6 +630,7 @@ if __name__ == "__main__":
             (r"/login", IdentifyHandler),
             (r"/poll", PollHandler),
             (r"/queue", QueueHandler),
+            (r"/read", ReadHandler),
             (r"/type", TypeHandler),
         ],
         cookie_secret=cookie_secret,
