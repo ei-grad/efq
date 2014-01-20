@@ -490,8 +490,9 @@ class FitHandler(BaseHandler):
             for name, q in modules.items()
         ))
 
-        for fc in self.character.fleet.fcs:
-            fc.refresh()
+        if self.character.fleet is not None:
+            for fc in self.character.fleet.fcs:
+                fc.refresh()
 
         self.redirect('/')
 
