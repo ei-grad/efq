@@ -576,19 +576,4 @@ if __name__ == "__main__":
 
     application.listen(options.port, options.host)
 
-    if options.devel:
-
-        @gen.coroutine
-        def setup_fixture():
-            mia, zwo = yield [get_character(u'Mia Cloks'),
-                              get_character(u'Zwo Zateki')]
-            try:
-                get_fleet(mia, 'HQ (40)').enqueue(zwo)
-            except:
-                logger.debug('Fixture setup failed:', exc_info=True)
-
-            logger.debug('Fixture setup complete.')
-
-        ioloop.IOLoop.instance().add_callback(stack_context.wrap(setup_fixture))
-
     ioloop.IOLoop.instance().start()
