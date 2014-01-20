@@ -224,10 +224,12 @@ class BaseHandler(web.RequestHandler):
 
         if self.character is None and self.login_required:
             self.redirect('/login')
-
-        self.check_status_required()
+        else:
+            self.check_status_required()
 
     def get_character_status(self):
+        if self.character is None:
+            return 'guest'
         if self.character.fleet is None:
             if self.character not in self.FREE_CHARS:
                 self.FREE_CHARS.add(self.character)
@@ -246,6 +248,7 @@ class BaseHandler(web.RequestHandler):
             status = self.get_character_status()
             if status != self.status_required:
                 self.redirect({
+                    'guest': '/login',
                     'free': '/',
                     'fc': '/fc',
                     'queue': '/queue',
