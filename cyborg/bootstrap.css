@@ -1,5 +1,3 @@
-@import url(http://fonts.googleapis.com/css?family=Open+Sans+Condensed:300,700&subset=latin,cyrillic);
-
 /*! normalize.css v2.1.3 | MIT License | git.io/normalize */
 
 article,
@@ -299,7 +297,7 @@ html {
 }
 
 body {
-  font-family: "Eve Sans Neue", "Open Sans Condensed", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Eve Sans Neue", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 14px;
   line-height: 1.428571429;
   color: #888888;
@@ -393,7 +391,7 @@ h6,
 .h4,
 .h5,
 .h6 {
-  font-family: "Eve Sans Neue", "Open Sans Condensed", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Eve Sans Neue", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 500;
   line-height: 1.1;
   color: #ffffff;

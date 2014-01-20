@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="well">
-  <p>Вы стоите в очереди во флот. Ваша позиция: <b>{{ queue.index(character) + 1 }}</b> из {{ len(queue) }}</p>
+  <p>Вы находитесь в запасе.</p>
   <p>Фит: {% module Fit(character, True) %}</p>
   <p>ФК: <b>{{ fleet.fc.name }}</b><br/>Тип флота: <b>{{ fleet.fleet_type }}</b></p>
   <form method="POST" action="leave">
@@ -12,7 +12,7 @@
 </div>
 
 <div class="panel panel-primary">
-<div class="panel-heading">Очередь ({{ len(fleet.queue) }} человек):</div>
+<div class="panel-heading">Запас ({{ len(fleet.queue) }}):</div>
 <ol class="list-group">
 {% for i in fleet.queue %}
 <li class="list-group-item">

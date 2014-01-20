@@ -20,12 +20,16 @@
   <div class="form-group">
     <label for="textArea" class="col-lg-2 control-label">Модули</label>
     <div class="col-lg-10">
-      <textarea class="form-control" rows="15" id="textArea" name="lines" placeholder="Modules"></textarea>
+      <textarea class="form-control" rows="15" id="textArea" name="lines"
+        placeholder="Modules">{{ fit }}</textarea>
       <span class="help-block">
         Откройте свой фит в Eve, выделите в нем любую
         строчку с модулем, нажмите Ctrl+A и Ctrl+C, а затем вставьте то что
         получилось в это поле, нажав правую кнопку мыши и выбрав пункт "Вставить"
-        или "Paste".
+        или "Paste".<br/>
+        Либо вы можете скопировать фит копированием строчки из чата (чтобы
+        получилась строка содержащая fitting:&lt;DNA&gt;). В этом случае
+        указывать корабль не нужно.
       </span>
     </div>
   </div>
