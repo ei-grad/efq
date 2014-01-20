@@ -65,6 +65,7 @@ CHARACTERS = {}
 
 redis = Redis()
 
+
 @gen.coroutine
 def get_character(name):
 
@@ -249,12 +250,15 @@ class BaseHandler(web.RequestHandler):
 
     @gen.coroutine
     def prepare(self):
+
         super(BaseHandler, self).prepare()
 
-        self.character = self.get_secure_cookie('character', None)
+        self.character = None
 
-        if self.character is not None:
-            self.character = yield get_character(self.character.decode('utf-8'))
+        name = self.get_secure_cookie('character', None)
+
+        if name is not None:
+            self.character = yield get_character(name.decode('utf-8'))
 
         if self.character is None and self.login_required:
             self.redirect('/login')
@@ -348,7 +352,6 @@ def get_fleets_list():
     return sorted(FLEETS.values(), key=lambda x: x.fleet_type)
 
 
-
 class BaseFreeHandler(BaseHandler):
     status_required = 'free'
 
@@ -377,6 +380,7 @@ class JoinHandler(BaseFreeHandler):
             self.redirect('/queue')
         else:
             self.redirect('/')
+
 
 class BaseQueueHandler(BaseHandler):
     status_required = 'queue'
@@ -408,9 +412,10 @@ class TypeHandler(BaseFCHandler):
     def post(self):
         fleet = self.character.fleet
         fleet.fleet_type = self.get_argument('fleet_type')
-        for character in self.FREE_CHARS:
-            character.refresh()
+        for i in self.FREE_CHARS + fleet.fcs + fleet.queue:
+            i.refresh()
         self.redirect('/fc')
+
 
 class DismissHandler(BaseFCHandler):
     def post(self):
@@ -551,11 +556,16 @@ class FitHandler(BaseHandler):
         lines = self.get_argument('lines')
 
         if 'fitting:' in lines:
+
             fit = DNA_RE.search(lines)
+
             if fit is not None:
                 fit = fit.group(1)
+
         else:
-            if ship not in TYPES_BY_NAME or TYPES_BY_NAME[ship]['slot'] != 'ship':
+
+            if ship not in TYPES_BY_NAME or \
+               TYPES_BY_NAME[ship]['slot'] != 'ship':
                 self.render('fit.html', msg='Нет такого корабля')
 
             modules = {}
@@ -570,10 +580,14 @@ class FitHandler(BaseHandler):
                         if m.group('q') is not None:
                             q = int(m.group('q'))
                         modules[m.group('name')] += q
-            fit = '%d:%s::' % (TYPES_BY_NAME[ship]['id'], ':'.join(
-                        '%d;%d' % (TYPES_BY_NAME[name]['id'], int(q))
-                        for name, q in modules.items()
-                    ))
+
+            fit = '%d:%s::' % (
+                TYPES_BY_NAME[ship]['id'],
+                ':'.join(
+                    '%d;%d' % (TYPES_BY_NAME[name]['id'], int(q))
+                    for name, q in modules.items()
+                )
+            )
 
         self.character.fit = fit
 
