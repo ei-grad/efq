@@ -19,7 +19,7 @@ import ui
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_TITLE = 'Fleet Queue'
+DEFAULT_TITLE = 'EVE Fleet Queue'
 
 FLEET_TYPES = ['Vanguard (10)', 'Assault (20)', 'HQ (40)']
 
@@ -458,7 +458,7 @@ except:
 
 
 MODULE_RE = re.compile('((?P<q>[0-9 ]+)x )?(?P<name>.*)')
-
+DNA_RE = re.compile('fitting:([0-9:;]+::)')
 
 
 class FitHandler(BaseHandler):
@@ -466,32 +466,43 @@ class FitHandler(BaseHandler):
     reload_on_poll = False
 
     def get(self):
-         self.render('fit.html')
+        if self.character.fit:
+            fit = 'fitting:%s' % self.character.fit
+        else:
+            fit = ''
+        self.render('fit.html', fit=fit)
 
     def post(self):
+
         ship = self.get_argument('ship')
-        lines = self.get_argument('lines').splitlines()
+        lines = self.get_argument('lines')
 
-        if ship not in TYPES_BY_NAME or TYPES_BY_NAME[ship]['slot'] != 'ship':
-            self.render('fit.html', msg='Нет такого корабля')
+        if 'fitting:' in lines:
+            fit = DNA_RE.search(lines)
+            if fit is not None:
+                fit = fit.group(1)
+        else:
+            if ship not in TYPES_BY_NAME or TYPES_BY_NAME[ship]['slot'] != 'ship':
+                self.render('fit.html', msg='Нет такого корабля')
 
-        modules = {}
+            modules = {}
 
-        for line in lines:
-            m = MODULE_RE.search(line)
-            if m is not None:
-                if m.group('name') in TYPES_BY_NAME:
-                    if m.group('name') not in modules:
-                        modules[m.group('name')] = 0
-                    q = 0
-                    if m.group('q') is not None:
-                        q = int(m.group('q'))
-                    modules[m.group('name')] += q
+            for line in lines:
+                m = MODULE_RE.search(line)
+                if m is not None:
+                    if m.group('name') in TYPES_BY_NAME:
+                        if m.group('name') not in modules:
+                            modules[m.group('name')] = 0
+                        q = 0
+                        if m.group('q') is not None:
+                            q = int(m.group('q'))
+                        modules[m.group('name')] += q
+            fit = '%d:%s::' % (TYPES_BY_NAME[ship]['id'], ':'.join(
+                        '%d;%d' % (TYPES_BY_NAME[name]['id'], int(q))
+                        for name, q in modules.items()
+                    ))
 
-        self.character.fit = '%d:%s::' % (TYPES_BY_NAME[ship]['id'], ':'.join(
-            '%d;%d' % (TYPES_BY_NAME[name]['id'], int(q))
-            for name, q in modules.items()
-        ))
+        self.character.fit = fit
 
         if self.character.fleet is not None:
             for fc in self.character.fleet.fcs:
