@@ -7509,6 +7509,10 @@ td.visible-print {
   border-bottom: 1px solid #282828;
 }
 
+.navbar-toggle {
+  padding: 7px 9px 5px 9px;
+}
+
 .text-primary,
 .text-primary:hover {
   color: #2a9fd6;
