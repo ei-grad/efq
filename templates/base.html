@@ -84,11 +84,15 @@
 
     {% if character %}
     <script>
-    $(function(){
-        $.get('/poll', function() {
+    function polling() {
+        $.get('/poll').always(function() {
+          {% if reload_on_poll %}
           document.location.reload();
+          {% else %}
+          setTimeout(polling, 500);
+          {% end %}
         })
-    })
+    }
     </script>
     {% end %}
 

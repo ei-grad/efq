@@ -195,6 +195,8 @@ class BaseHandler(web.RequestHandler):
     login_required = True
     status_required = None
 
+    reload_on_poll = True
+
     @gen.coroutine
     def prepare(self):
         super(BaseHandler, self).prepare()
@@ -240,6 +242,7 @@ class BaseHandler(web.RequestHandler):
             'PREFERRED_SHIPS': PREFERRED_SHIPS,
             'FREE_CHARS': self.FREE_CHARS,
             'ONLINE': self.ONLINE,
+            'reload_on_poll': self.reload_on_poll,
             'character': self.character,
         }
         default_kwargs.update(kwargs)
@@ -456,6 +459,8 @@ MODULE_RE = re.compile('((?P<q>[0-9 ]+)x )?(?P<name>.*)')
 
 
 class FitHandler(BaseHandler):
+
+    reload_on_poll = False
 
     def get(self):
          self.render('fit.html')
