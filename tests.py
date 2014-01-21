@@ -83,7 +83,7 @@ class TestAccess(BaseTestCase):
     def test_channel_auth(self):
         response = self.get_login_response()
         self.assertIn(TEST_TOKEN, response.body)
-        self.assertIn('/login/channel_auth', response.body)
+        self.assertIn('"/login/channel_auth"', response.body)
         self.assertIn('Set-Cookie', response.headers)
         cookies = get_cookies(response)
         self.assertIn('key', cookies)
@@ -109,4 +109,4 @@ class TestAccess(BaseTestCase):
     @gen_test
     def test_mail_auth(self):
         login_response = self.get_login_response()
-        self.assertIn('/login/mail_auth', login_response.body)
+        self.assertIn('"/login/mail_auth"', login_response.body)

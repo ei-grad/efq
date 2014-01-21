@@ -33,7 +33,7 @@
            'There are %d FC online now. You can ask one of them to send an ingame email with authentication link for you.',
            FCS_ONLINE) % FCS_ONLINE }}
     </p>
-      <form method="POST" action="/login/mail_auth_ask">
+      <form method="POST" action="/login/mail_auth">
         {% module xsrf_form_html() %}
         <button class="btn" type="submit">{{ _('Ask') }}</button>
       </form>
