@@ -6,6 +6,7 @@ from uuid import uuid1
 import binascii
 import logging
 import os
+import pwd
 import random
 import re
 
@@ -849,6 +850,8 @@ if __name__ == "__main__":
 
     parse_command_line()
 
+    logging.getLogger('tornado.general').setLevel(logging.INFO)
+
     BaseHandler.title = options.title
     LoginHandler.auth_channel = options.channel
 
@@ -875,7 +878,6 @@ if __name__ == "__main__":
         if options.devel:
             logger.warning('Auto-reloading with priveledge dropping is not '
                            'supported. Development mode disabled.')
-        import pwd
         os.setuid(pwd.getpwnam(options.user).pw_uid)
 
     ioloop.IOLoop.instance().start()
