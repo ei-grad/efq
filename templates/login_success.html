@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+{{ _('You have successfully login as') }} {% module Character(character) %}.
+{% end %}
+
+{% block addjs %}
+<script>
+window.setTimeout(function() {document.location = '/'}, 5000);
+</script>
+{% end %}

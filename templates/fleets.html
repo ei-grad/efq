@@ -18,56 +18,50 @@
               <button type="submit" class="btn btn-default btn-xs"><i class="fa fa-sign-in"></i></button>
             </div>
           </form>
-          {{ fleet.fc.name }} - {{ fleet.fleet_type }} - запас  {{ len(fleet.queue) }}
+          {% module Character(fleet.fc) %} - {{ fleet.fleet_type }} - запас  {{ len(fleet.queue) }}
         </li>
       {% end %}
       </ul>
     </div>
     {% else %}
-      <p>Флотов сейчас нет, либо ФК не используют EFQ.</p>
+    <div class="well">Флотов сейчас нет, либо ФК не используют EFQ.</div>
     {% end %}
   </div>
-  <div class="col-md-3">
-    <div class="panel panel-default">
-      <div class="panel-heading">Мой фит:</div>
-      <div class="panel-body">
-        {% if character.fit %}
-          {% module Fit(character, True) %}
-        {% else %}
-          <a href="/fit">Загрузить</a>
-        {% end %}
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="panel panel-default">
-      <div class="panel-heading">Сейчас Online:</div>
-      <!-- TODO: сгруппировать по кораблям! -->
-      <div class="panel-body">
-      {{ ', '.join(i.name for i in sorted(ONLINE, key=lambda x: x.name)) }}
-      </div>
-    </div>
-  </div>
-</div>
-
-<br/>
-
-<div class="row">
   <div class="col-md-6">
-    <form method='POST' class="form-inline">
-      <legend>Новый флот</legend>
-      {% module xsrf_form_html() %}
-      <div class="form-group">
-        <select name='fleet_type' class='form-control input-sm'>
-          {% for n, i in enumerate(FLEET_TYPES) %}
-          <option value='{{ i }}'{% if n == 0 %} selected{% end %}>{{ i }}</option>
-          {% end %}
-        </select>
+    <div class="panel-group" id="accordion">
+      {% if character.name in FCS %}
+      <div class="panel panel-primary">
+        <div class="panel-body" id="fleet-panel">
+          <form method='POST' class="form-inline">
+            {% module xsrf_form_html() %}
+            <div class="form-group">
+              <select name='fleet_type' class='form-control'>
+                {% for n, i in enumerate(FLEET_TYPES) %}
+                <option value='{{ i }}'{% if n == 0 %} selected{% end %}>{{ i }}</option>
+                {% end %}
+              </select>
+            </div>
+            <button type="submit" class="btn btn-default">Создать новый флот</button>
+          </form>
+        </div>
       </div>
-      <div class="form-group">
-        <button type="submit" class="form-control btn btn-default btn-sm input-sm">Создать</button>
+      {% end %}
+      <div class="panel panel-default">
+        <div class="panel-body" id="fit-panel">
+          Фит: {% if character.fit %}{% module Fit(character, True) %}{% else %}<a href="/fit">Загрузить</a>{% end %}
+        </div>
       </div>
-    </form>
+      <div class="panel panel-default">
+        <div class="panel-heading" data-toggle="collapse"
+          data-parent="#accordion" href="#online-panel">Online: {{ len(ONLINE) }}</div>
+        <!-- TODO: сгруппировать по кораблям! -->
+        <div class="panel-body collapse" id="online-panel">
+        {% for n, i in enumerate(sorted(ONLINE, key=lambda x: x.name)) %}
+        {% module Character(i) %}{% if n != len(ONLINE) - 1 %}, {% end %}
+        {% end %}
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 

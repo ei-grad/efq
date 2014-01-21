@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="alert alert-info">
+{{ _('This site requires trust to work.') }}
+</div>
+{% end %}
+
+{% block addjs %}
+<script>
+setTimeout(function(){document.location.reload()}, 2000);
+CCPEVE.requestTrust('http://{{ request.host }}');
+</script>
+{% end %}

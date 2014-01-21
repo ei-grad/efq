@@ -2,7 +2,7 @@
 <html>
 
   <head>
-    <title>{{ TITLE }}</title>
+    <title>{{ title }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Bootstrap -->
@@ -26,25 +26,32 @@
       <div class="navbar-header">
         <div class="navbar-toggle" data-toggle="collapse"
           data-target=".navbar-collapse"><i class="fa fa-bars"></i></div>
-        <a class="navbar-brand" href="/">{{ TITLE }}</a>
+        <a class="navbar-brand" href="/">{{ title }}</a>
       </div>
       <div class="navbar-collapse collapse">
         <ul class="nav navbar-nav">
-          <li class="active"><a href="/">Флоты</a></li>
-          <li><a href="http://raisa.su/rules">Правила</a></li>
-          <li><a href="http://raisa.su/fits">Фиты</a></li>
-          <li><a href="http://raisa.su/srp">Страхование</a></li>
-          <li><a href="http://raisa.su/guides">Руководства</a></li>
-          <li><a href="http://raisa.su/about">О канале</a></li>
+          <li class="active"><a href="/">{{ _('Fleets') }}</a></li>
+          <li><a href="http://raisa.su/rules">{{ _('Rules') }}</a></li>
+          <li><a href="http://raisa.su/fits">{{ _('Fits') }}</a></li>
+          <li><a href="http://raisa.su/srp">{{ _('SRP') }}</a></li>
+          <li><a href="http://raisa.su/guides">{{ _('Guides') }}</a></li>
+          <li><a href="http://raisa.su/about">{{ _('About us') }}</a></li>
         </ul>
         <ul class="nav navbar-nav navbar-right">
           {% if character is not None %}
           <li class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ character.name }} <b class="caret"></b></a>
             <ul class="dropdown-menu">
-              {% if character.is_admin %}<li><a href="/admin">Администрирование</a></li>{% end %}
-              <li><a href="/fit">Фит</a></li>
-              <li><a href="#" onclick='javascript:logout()'>Выйти</a></li>
+              {% if character.is_admin %}<li><a href="/admin">{{ _('Admin') }}</a></li>{% end %}
+              <li><a href="/fit">{{ _('Fit') }}</a></li>
+              <li><a href="/logout">{{ _('Logout') }}</a></li>
+            </ul>
+          </li>
+          {% elif trusted %}
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ eve['charname'] }} <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li><a href="/login">{{ _('Authenticate') }}</a></li>
             </ul>
           </li>
           {% end %}
@@ -65,8 +72,9 @@
       {% end %}
     </div>
 
-    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://code.jquery.com/jquery.js"></script>
+    <script src="{{ static_url('js/bootstrap.min.js') }}"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.9/angular.min.js"></script>
 
     <script>
     function getCookie(name) {
@@ -90,12 +98,16 @@
     {% if character %}
     <script>
     function polling() {
-        $.get('/poll')
-        .done(function() {
-          {% if reload_on_poll %}
-          document.location.reload();
-          {% else %}
-          setTimeout(polling, 500);
+        $.getJSON('/poll')
+        .done(function(data) {
+          if (data.action == 'reload') {
+            {% if reload_on_poll %}
+            document.location.reload();
+            {% else %}
+            setTimeout(polling, 500);
+            {% end %}
+          }
+          {% block poll_handlers %}
           {% end %}
         })
         .fail(function() {
@@ -105,9 +117,6 @@
     $(polling);
     </script>
     {% end %}
-
-    <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="{{ static_url('js/bootstrap.min.js') }}"></script>
 
     {% block addjs %}
     {% end %}

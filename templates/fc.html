@@ -14,15 +14,15 @@
         <div class="row">
           <div class="col-sm-8">
             {{ n + 1 }}.
-            <a onclick='javascript:CCPEVE.showInfo(1377, "{{ i.char_id }}");'>{{ i.name }}</a> -
+            <a onclick='javascript:CCPEVE.showInfo(1377, "{{ i.charid }}");'>{{ i.name }}</a> -
             {% module Fit(i) %}
           </div>
           <div class="col-sm-4" style="text-align: right">
             <button class="btn btn-xs btn-success"
-              onclick='javascript:fleetInvite("{{ i.name }}", "{{ i.char_id }}")'
+              onclick='javascript:fleetInvite("{{ i.name }}", "{{ i.charid }}")'
               ><i class="fa fa-check"></i></button>
             <button class="btn btn-xs btn-danger"
-              onclick='javascript:fleetDecline("{{ i.name }}", "{{ i.char_id }}")'
+              onclick='javascript:fleetDecline("{{ i.name }}", "{{ i.charid }}")'
               ><i class="fa fa-wheelchair"></i></button>
           </div>
         </div>
@@ -36,39 +36,53 @@
 </div>
 
 <div class="col-md-6">
-  <div class="panel panel-default">
-    <div class="panel-heading" data-toggle="collapse" data-target="#fleet-settings">
-      <h4 class="panel-title">Параметры флота</h4>
-    </div>
-    <div class="panel-body collapse in" id="fleet-settings">
-      <form method='POST' class="form" action="type">
-        {% module xsrf_form_html() %}
-        <legend>Тип флота</legend>
-        <div class="form-group">
-          <select name='fleet_type' class='form-control'>
-            {% for i in FLEET_TYPES %}
-            <option {% if fleet.fleet_type == i %} selected{% end %}>{{ i }}</option>
-            {% end %}
-          </select>
-        </div>
-        <div class="form-group">
+  <div class="panel-group" id="accordeon">
+    <div class="panel panel-default">
+      <div class="panel-heading" data-toggle="collapse" data-parent="#accordeon"
+        href="#fleet-type-panel"><h4 class="panel-title">Тип флота: {{ fleet.fleet_type }}</h4>
+      </div>
+      <div class="panel-body collapse" id="fleet-type-panel">
+        <form method='POST' class="form" action="type">
+          {% module xsrf_form_html() %}
+          <div class="form-group">
+            <select name='fleet_type' class='form-control'>
+              {% for i in FLEET_TYPES %}
+              <option {% if fleet.fleet_type == i %} selected{% end %}>{{ i }}</option>
+              {% end %}
+            </select>
+          </div>
           <button type="submit" class="btn btn-default form-control">Изменить</button>
-        </div>
-      </form>
-      <form method="POST" action="addfc" class="form">
-        <legend>Передача флота</legend>
-        {% module xsrf_form_html() %}
-        <div class="form-group">
-          <input name="character" class="form-control" />
-        </div>
-        <div class="form-group">
-          <button type="submit" class="btn btn-default">Добавить ФК</button>
-        </div>
-      </form>
-      <form method="POST" action="dismiss" class="form">
-        {% module xsrf_form_html() %}
-        <button type="submit" class="btn btn-danger">Уйти из флота</button>
-      </form>
+        </form>
+      </div>
+    </div>
+    <div class="panel panel-default">
+      <div class="panel-heading" data-toggle="collapse" data-parent="#accordeon"
+        href="#add-fc-panel"><h4 class="panel-title">ФК: {{ fleet.fc.name }}</h4>
+      </div>
+      <div class="panel-body collapse" id="add-fc-panel">
+        <ul class="list-group">
+          {% for i in fleet.fcs %}
+          {% if i is not fleet.fc %}
+          <li class="list-group-item">{{ i.name }}</li>
+          {% end %}
+          {% end %}
+        </ul>
+        <form method="POST" action="addfc" class="form">
+          {% module xsrf_form_html() %}
+          <div class="form-group">
+            <div class="input-group">
+              <input name="character" class="form-control" placeholder="Добавить ФК" />
+              <span class="input-group-btn">
+                <button type="submit" class="btn btn-default"><i class="fa fa-plus"></i></button>
+              </span>
+            </div>
+          </div>
+        </form>
+        <form method="POST" action="dismiss" class="form">
+          {% module xsrf_form_html() %}
+          <button type="submit" class="btn btn-danger">Уйти из флота</button>
+        </form>
+      </div>
     </div>
   </div>
 </div>
@@ -77,15 +91,14 @@
 
 {% end %}
 
-
 {% block addjs %}
 <script>
-function fleetInvite(name, char_id) {
+function fleetInvite(name, charid) {
   CCPEVE.requestTrust('http://{{ request.host }}');
-  CCPEVE.inviteToFleet(parseInt(char_id));
+  CCPEVE.inviteToFleet(parseInt(charid));
   $.post('/invite', {character: name});
 }
-function fleetDecline(name, char_id) {
+function fleetDecline(name, charid) {
   $.post('/decline', {character: name});
 }
 </script>

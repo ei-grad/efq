@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% if auth_channel_failed %}
+<div class="alert alert-danger">{{ _("Can't find the key! Try to wait a minute.") }}</div>
+{% end %}
+
+<div class="panel panel-default">
+  <div class="panel-heading"><h3 class="panel-title">{{ _('Authentication via chat channel (using eve-live.com)') }}</h3></div>
+  <div class="panel-body">
+    <p>
+      {{ _('Send the following key to') }}
+      <a href='javascript:joinChannel("{{ auth_channel }}")'
+        >{% raw escape(auth_channel).replace(' ', '&nbsp;') %}</a>:
+    </p>
+    <pre>{{ key }}</pre>
+    <p>{{ _('Now you have to wait some minutes.') }}</p>
+    <form method="POST" action="/login/channel_auth">
+      {% module xsrf_form_html() %}
+      <button class="btn" type="submit">{{ _('Check') }}</button>
+    </form>
+  </div>
+</div>
+
+<div class="panel panel-default">
+  <div class="panel-heading"><h3 class="panel-title">{{ _('Authentication via fleet commander (using EVE Mail)') }}</h3></div>
+  <div class="panel-body">
+    {% set FCS_ONLINE = len(ONLINE.intersection(FCS)) %}
+    {% if FCS_ONLINE %}
+    <p>
+      {{ _('There is %d FC online now. You can ask him to send an ingame email with authentication link for you.',
+           'There are %d FC online now. You can ask one of them to send an ingame email with authentication link for you.',
+           FCS_ONLINE) % FCS_ONLINE }}
+    </p>
+      <form method="POST" action="/login/mail_auth_ask">
+        {% module xsrf_form_html() %}
+        <button class="btn" type="submit">{{ _('Ask') }}</button>
+      </form>
+    {% else %}
+    {{ _('There are no FC online now. This method would not work without a FC.') }}
+    {% end %}
+  </div>
+</div>
+
+{% end %}

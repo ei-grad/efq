@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block content %}
+<p>{{ _('Are you sure want to logout?') }}</p>
+<form method="POST">
+  {% module xsrf_form_html() %}
+  <button class="btn btn-danger" type="submit">{{ _("Logout") }}</button>
+</form>
+{% end %}
