@@ -25,7 +25,6 @@ TEST_CHARNAME = 'test 1'
 TEST_CHAR = efq.Character(TEST_CHARNAME)
 efq.CHARACTERS[TEST_CHARNAME] = TEST_CHAR
 TEST_CHARID = '111111111111'
-TEST_TOKEN = '0000000000000000'
 
 
 class BaseTestCase(AsyncHTTPTestCase):
@@ -76,20 +75,23 @@ class TestAccess(BaseTestCase):
 
     def get_login_response(self):
         with patch('efq.LoginHandler.generate_token') as mock:
-            mock.return_value = TEST_TOKEN
+            def side_effect(x):
+                self.token = '0' * x
+                return self.token
+            mock.side_effect = side_effect
             return self.fetch('/login')
 
     @gen_test
     def test_channel_auth(self):
         response = self.get_login_response()
-        self.assertIn(TEST_TOKEN, response.body)
+        self.assertIn(self.token, response.body)
         self.assertIn('"/login/channel_auth"', response.body)
         self.assertIn('Set-Cookie', response.headers)
         cookies = get_cookies(response)
         self.assertIn('key', cookies)
 
         with patch('efq.ChannelAuthHandler.get_chat_logs') as mock:
-            s = '''<tr onMouseOver="this.className='trm'" onMouseOut="this.className=''"><td class="logTD" style="white-space:nowrap; max-width:240px;">[<a href="/quote/186508084">i</a>]<a href="/talk/186508084" style="color:#AEE4FF;">2014.01.21 07:20:00</a><font color="#C8FFC8"> +12s</font>&nbsp;</td><td class="logTD" style="white-space:nowrap; max-width:240px;"><a href="/RAISA_Shield" style="color:#CF6">RAISA Shield</a>&nbsp;</td><td class="logTD">&lt;<a href="/RAISA_Shield/p/%s" style="color:#FC3;">%s</a>&gt; %s </td></tr>''' % (TEST_CHARNAME.replace(' ', '_'), TEST_CHARNAME, TEST_TOKEN)
+            s = '''<tr onMouseOver="this.className='trm'" onMouseOut="this.className=''"><td class="logTD" style="white-space:nowrap; max-width:240px;">[<a href="/quote/186508084">i</a>]<a href="/talk/186508084" style="color:#AEE4FF;">2014.01.21 07:20:00</a><font color="#C8FFC8"> +12s</font>&nbsp;</td><td class="logTD" style="white-space:nowrap; max-width:240px;"><a href="/RAISA_Shield" style="color:#CF6">RAISA Shield</a>&nbsp;</td><td class="logTD">&lt;<a href="/RAISA_Shield/p/%s" style="color:#FC3;">%s</a>&gt; %s </td></tr>''' % (TEST_CHARNAME.replace(' ', '_'), TEST_CHARNAME, self.token)
             mock.side_effect = lambda callback: callback(Mock(body=s))
             headers = HTTPHeaders()
             headers.add('Cookie', cookies['key'].OutputString())
@@ -108,5 +110,5 @@ class TestAccess(BaseTestCase):
     @patch('efq.BaseHandler.FCS', [TEST_CHAR])
     @gen_test
     def test_mail_auth(self):
-        login_response = self.get_login_response()
-        self.assertIn('"/login/mail_auth"', login_response.body)
+        response = self.get_login_response()
+        self.assertIn('"/login/mail_auth"', response.body)

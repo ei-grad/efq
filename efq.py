@@ -150,7 +150,6 @@ class Character(object):
         self.name = name
         self.fleet = None
         self.is_fc = False
-        self.is_admin = name in ADMINS
         self.fit = None
         self.charid = None
         self.messages = []
@@ -158,6 +157,9 @@ class Character(object):
 
     def __repr__(self):
         return '<Character:%s:%s at %s>' % (self.name, self.charid, id(self))
+
+    def is_admin(self):
+        return self in BaseHandler.ADMINS
 
     @property
     def ship(self):
@@ -481,7 +483,7 @@ class MailAuthAskHandler(BaseLoginHandler):
     def post(self):
         token = self.generate_token(16)
         k = 'efq:mail_auth_token:%s:%s' % (self.eve['charname'], token)
-        redis.set(k)
+        redis.set(k, "")
         redis.expire(k, 600)
         online_fcs = list(self.ONLINE.intersect(self.FCS))
         if online_fcs:
@@ -862,7 +864,7 @@ if __name__ == "__main__":
         template_path='templates',
         static_path='static',
         ui_modules=ui,
-        debug=options.devel,
+        debug=options.devel if not options.user else False,
         xsrf_cookies=True,
     )
 
@@ -870,6 +872,9 @@ if __name__ == "__main__":
     server.listen(options.port, options.host)
 
     if options.user:
+        if options.devel:
+            logger.warning('Auto-reloading with priveledge dropping is not '
+                           'supported. Development mode disabled.')
         import pwd
         os.setuid(pwd.getpwnam(options.user).pw_uid)
 
