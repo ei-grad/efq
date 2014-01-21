@@ -11,7 +11,7 @@ import re
 
 import ujson as json
 
-from tornado import gen, ioloop, web, httpclient, stack_context
+from tornado import gen, ioloop, web, httpclient, httpserver, stack_context
 from tornado.options import options, define, parse_command_line
 from tornado.httputil import urlencode
 
@@ -843,6 +843,7 @@ if __name__ == "__main__":
     define('devel', type=bool, default=False)
     define('host', type=str, default='localhost')
     define('port', type=int, default=8888)
+    define('user', type=str, default='')
 
     parse_command_line()
 
@@ -865,6 +866,11 @@ if __name__ == "__main__":
         xsrf_cookies=True,
     )
 
-    application.listen(options.port, options.host, xheaders=True)
+    server = httpserver.HTTPServer(application, xheaders=True)
+    server.listen(options.port, options.host)
+
+    if options.user:
+        import pwd
+        os.setuid(pwd.getpwnam(options.user).pw_uid)
 
     ioloop.IOLoop.instance().start()
