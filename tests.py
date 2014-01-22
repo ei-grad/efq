@@ -8,7 +8,8 @@ except:
 
 from mock import patch, Mock
 
-from tornado import ioloop
+from tornado import stack_context
+from tornado.ioloop import IOLoop
 from tornado.testing import AsyncHTTPTestCase, gen_test
 from tornado.escape import native_str
 from tornado.web import Application
@@ -89,7 +90,8 @@ def faketoken():
     def side_effect(x):
         side_effect.token = native_str('0' * x * 2)
         return side_effect.token
-    mock = patch('efq.LoginHandler.generate_token', side_effect=side_effect)
+    side_effect.token = None
+    mock = patch('efq.BaseLoginHandler.generate_token', side_effect=side_effect)
     return mock
 
 
@@ -123,8 +125,10 @@ class TestAccess(BaseTestCase):
             mock.side_effect = lambda callback: callback(Mock(body=s))
             headers = HTTPHeaders()
             headers.add('Cookie', cookies['key'].OutputString())
-            response = self.fetch('/login/channel_auth', body='', method='POST',
-                                  headers=get_cookie_headers(cookies), follow_redirects=False)
+            response = self.fetch('/login/channel_auth',
+                                  method='POST', body='',
+                                  headers=get_cookie_headers(cookies),
+                                  follow_redirects=False)
 
         self.assertEqual(response.code, 302)
         self.assertEqual(response.headers['location'], '/login/success')
@@ -144,6 +148,7 @@ class TestAccess(BaseTestCase):
         with faketoken() as mock:
 
             def cb(data):
+                mock.assert_called_once_with(16)
                 self.assertEqual(data, {
                     'mail_auth_request': {
                         'token': mock.side_effect.token,
@@ -151,8 +156,12 @@ class TestAccess(BaseTestCase):
                         'charid': TESTCHAR2.charid,
                     }
                 })
+                IOLoop.instance().stop()
+                cb.called = True
 
-            TESTCHAR1.callbacks.append(cb)
+            cb.called = False
+
+            TESTCHAR1.callbacks.append(stack_context.wrap(cb))
 
             response = self.fetch("/login/mail_auth", method='POST',
                                   follow_redirects=False, body='', char=TESTCHAR2)
@@ -164,3 +173,7 @@ class TestAccess(BaseTestCase):
         )
 
         self.assertEqual(TESTCHAR1.callbacks, [])
+
+        IOLoop.instance().start()
+
+        self.assertTrue(cb.called)

@@ -411,13 +411,6 @@ class BaseLoginHandler(BaseHandler):
     def generate_token(self, length):
         return binascii.b2a_hex(os.urandom(length))
 
-    def prepare(self):
-        super(BaseLoginHandler, self).prepare()
-        self.key = self.get_secure_cookie('key')
-        if self.key is None:
-            self.key = self.generate_token(8)
-            self.set_secure_cookie('key', self.key)
-
     def render(self, *args, **kwargs):
         kwargs['auth_channel'] = self.auth_channel
         kwargs['key'] = self.key
@@ -445,7 +438,16 @@ class TemplateMixin(object):
         ))
 
 
-class LoginHandler(TemplateMixin, BaseLoginHandler):
+class ChannelAuthKeyMixin(object):
+    def prepare(self):
+        super(ChannelAuthKeyMixin, self).prepare()
+        self.key = self.get_secure_cookie('key')
+        if self.key is None:
+            self.key = self.generate_token(8)
+            self.set_secure_cookie('key', self.key)
+
+
+class LoginHandler(ChannelAuthKeyMixin, TemplateMixin, BaseLoginHandler):
     template = 'login.html'
     optional_get_params = ['mail_auth', 'channel_auth']
 
@@ -454,7 +456,7 @@ class LoginSuccessHandler(TemplateMixin, BaseHandler):
     template = 'login_success.html'
 
 
-class ChannelAuthHandler(BaseLoginHandler):
+class ChannelAuthHandler(ChannelAuthKeyMixin, BaseLoginHandler):
 
     @gen.coroutine
     def get_chat_logs(self):
@@ -832,6 +834,7 @@ HANDLERS = [
     (r"/login", LoginHandler),
     (r"/login/channel_auth", ChannelAuthHandler),
     (r"/login/mail_auth", MailAuthAskHandler),
+    (r"/login/mail_auth/([0-9a-f]+)", MailAuthHandler),
     (r"/login/success", LoginSuccessHandler),
     (r"/logout", LogoutHandler),
     (r"/poll", PollHandler),
