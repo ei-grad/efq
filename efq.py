@@ -15,6 +15,7 @@ import ujson as json
 from tornado import gen, ioloop, web, httpclient, httpserver, stack_context
 from tornado.options import options, define, parse_command_line
 from tornado.httputil import urlencode
+from tornado.escape import native_str
 
 from toredis import Redis
 
@@ -177,9 +178,12 @@ class Character(object):
             if i[0] == msgid:
                 self.messages.remove(i)
 
-    def refresh(self):
+    def refresh(self, data=None):
         callbacks, self.callbacks = self.callbacks, []
         for callback in callbacks:
+            if data is not None:
+                orig_callback = callback
+                callback = lambda: orig_callback(data)
             ioloop.IOLoop.instance().add_callback(callback)
 
     def to_json(self, include_fit=False):
@@ -318,10 +322,10 @@ class BaseHandler(web.RequestHandler):
             characters = self.get_secure_cookie('character', None)
 
             if characters:
-                characters = characters.split(',')
+                characters = native_str(characters).split(',')
                 if self.eve.get('charname') in characters:
                     name = self.eve['charname']
-                    self.character = yield get_character(name.decode('utf-8'))
+                    self.character = yield get_character(name)
 
             if self.character is None and self.login_required:
                 self.redirect('/login')
@@ -464,11 +468,13 @@ class ChannelAuthHandler(BaseLoginHandler):
         response = yield gen.Task(self.get_chat_logs)
         content = response.body
 
-        r = (r'<a href="/%s/p/([^"]+)" style="color:#FC3;">([^>]+)</a>'
-             r'&gt; %s </td>')
-        r = r % (self.auth_channel.replace(' ', '_'), self.key)
+        r = native_str(
+            r'<a href="/%s/p/([^"]+)" style="color:#FC3;">([^>]+)</a>'
+            r'&gt; %s </td>'
+        )
+        r = r % (self.auth_channel.replace(' ', '_'), native_str(self.key))
 
-        m = re.search(r, content)
+        m = re.search(r, native_str(content))
 
         if m is not None and m.group(2) == m.group(1).replace('_', ' '):
             character = m.group(2)
@@ -486,7 +492,7 @@ class MailAuthAskHandler(BaseLoginHandler):
         k = 'efq:mail_auth_token:%s:%s' % (self.eve['charname'], token)
         redis.set(k, "")
         redis.expire(k, 600)
-        online_fcs = list(self.ONLINE.intersect(self.FCS))
+        online_fcs = list(self.ONLINE.intersection(self.FCS))
         if online_fcs:
             fc = random.choice(online_fcs)
             fc.refresh({
