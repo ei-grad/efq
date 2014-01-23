@@ -95,6 +95,8 @@ redis = Redis()
 @gen.coroutine
 def get_character(name):
 
+    logger.debug('Get character: %s', name)
+
     if name not in CHARACTERS:
 
         character = Character(name)
@@ -113,7 +115,8 @@ def get_character(name):
             else:
                 raise Exception("Invalid response!")
         except:
-            logger.error("Request to api.eveonline.com failed:", name, exc_info=True)
+            logger.error("Request %s failed:",
+                         url, exc_info=True)
 
         if not character.charid or character.charid == "0":
             del CHARACTERS[name]
@@ -122,15 +125,15 @@ def get_character(name):
             raise Exception(msg)
 
         try:
-            fit = yield gen.Task(redis.get, 'efq:fitting:%s' % name)
+            fit = yield redis.get('efq:fitting:%s' % name)
             if fit:
                 character.fit = fit
         except:
             logger.error("Failed to get fit from redis!", exc_info=True)
 
         logger.debug(
-            'Loaded character %s (%s) %s', name, character.charid,
-            'with fitting:%s' % character.fit if character.fit else 'without fit'
+            'Loaded character %s (%s)%s', name, character.charid,
+            ' with fitting:%s' % character.fit if character.fit else ''
         )
 
     raise gen.Return(CHARACTERS[name])
@@ -393,8 +396,10 @@ class BaseHandler(web.RequestHandler):
 
 
 class TrustHandler(BaseHandler):
+
     login_required = False
     trust_required = False
+
     def get(self):
         if self.trusted:
             self.redirect('/')
@@ -430,7 +435,9 @@ class BaseLoginHandler(BaseHandler):
 
 
 class TemplateMixin(object):
+
     optional_get_params = []
+
     def get(self):
         self.render(self.template, **dict(
             (i, self.get_argument(i, None))
@@ -489,19 +496,31 @@ class ChannelAuthHandler(ChannelAuthKeyMixin, BaseLoginHandler):
 
 
 class MailAuthAskHandler(BaseLoginHandler):
+    @gen.coroutine
     def post(self):
-        token = self.generate_token(16)
-        k = 'efq:mail_auth_token:%s:%s' % (self.eve['charname'], token)
-        redis.set(k, "")
-        redis.expire(k, 600)
         online_fcs = list(self.ONLINE.intersection(self.FCS))
         if online_fcs:
+            charname = self.eve.get('charname')
+            charname = self.get_argument('charname', charname)
+            charid = self.eve.get('charid')
+            if charid is None:
+                character = yield get_character(charname)
+                charid = character.charid
+
+            token = self.generate_token(16)
+
+            logger.debug('Auth link for %s: http://%s/login/token/%s',
+                         charname, self.request.host, token)
+
+            k = 'efq:mail_auth_token:%s' % token
+            redis.set(k, charname)
+            redis.expire(k, 600)
             fc = random.choice(online_fcs)
             fc.refresh({
                 'mail_auth_request': {
                     'token': token,
-                    'character': self.eve['charname'],
-                    'charid': self.eve['charid'],
+                    'character': charname,
+                    'charid': charid,
                 }
             })
             self.redirect('/login?' + urlencode({
@@ -514,17 +533,22 @@ class MailAuthAskHandler(BaseLoginHandler):
 
 class MailAuthHandler(BaseLoginHandler):
     @gen.coroutine
-    def get(self, name, token):
-        if self.eve['charname'] == name:
-            k = 'efq:mail_auth_token:%s:%s' % (name, token)
-            correct = yield redis.get(k)
-            if correct is not None:
-                self.login_success(name)
+    def get(self, token):
+        k = 'efq:mail_auth_token:%s' % token
+        charname = yield redis.get(k)
+        if charname:
+            charname = charname.decode('utf-8')
+            if self.trusted and self.eve['charname'] != charname:
+                reason = "%s tried to authenticate as %s!" % (
+                    self.eve['charname'], charname
+                )
+                logger.warning(reason)
+                self.send_error(400, reason=reason)
             else:
-                self.send_error(400, reason="Bad token!")
+                redis.delete(k)
+                self.login_success(charname)
         else:
-            reason="%s to authenticate as %s!" % (self.eve['name'], name)
-            self.send_error(400, reason=reason)
+            self.send_error(400, reason="Bad token!")
 
 
 class LogoutHandler(TemplateMixin, BaseHandler):
@@ -678,9 +702,12 @@ class PollHandler(BaseHandler):
         if self.character is not None:
             self.set_header('Content-Type', 'application/json')
             if self.get_secure_cookie('uuid') != self.uuid:
+                logger.debug('Character %s has bad uuid cookie',
+                             self.character.name)
                 self.set_secure_cookie('uuid', self.uuid)
                 self.finish('{"action": "reload"}')
             else:
+                logger.debug('%s: poll started', self.character.name)
                 if self.character not in self.ONLINE:
                     self.ONLINE.add(self.character)
                 self.cb = stack_context.wrap(self.finish)
@@ -689,6 +716,7 @@ class PollHandler(BaseHandler):
             self.finish()
 
     def on_connection_close(self):
+        logger.debug('%s: poll finished', self.character.name)
         if self.cb in self.character.callbacks:
             self.character.callbacks.remove(self.cb)
             if not self.character.callbacks and self.character in self.ONLINE:
@@ -751,6 +779,7 @@ class FitHandler(BaseHandler):
             fit = ''
         self.render('fit.html', fit=fit)
 
+    @gen.coroutine
     def post(self):
 
         ship = self.get_argument('ship')
@@ -793,9 +822,7 @@ class FitHandler(BaseHandler):
 
         self.character.fit = fit
 
-        redis.set('efq:fitting:%s' % self.character.name,
-                  self.character.fit,
-                  callback=lambda x: None)
+        redis.set('efq:fitting:%s' % self.character.name, self.character.fit)
 
         if self.character.fleet is not None:
             for fc in self.character.fleet.fcs:
@@ -834,7 +861,7 @@ HANDLERS = [
     (r"/login", LoginHandler),
     (r"/login/channel_auth", ChannelAuthHandler),
     (r"/login/mail_auth", MailAuthAskHandler),
-    (r"/login/mail_auth/([0-9a-f]+)", MailAuthHandler),
+    (r"/login/token/([0-9a-f]+)", MailAuthHandler),
     (r"/login/success", LoginSuccessHandler),
     (r"/logout", LogoutHandler),
     (r"/poll", PollHandler),
@@ -848,7 +875,9 @@ HANDLERS = [
 
 if __name__ == "__main__":
 
-    httpclient.AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncHTTPClient")
+    httpclient.AsyncHTTPClient.configure(
+        "tornado.curl_httpclient.CurlAsyncHTTPClient"
+    )
 
     define('title', type=str, default=DEFAULT_TITLE)
     define('channel', type=str, default=DEFAULT_AUTH_CHANNEL)
@@ -865,10 +894,10 @@ if __name__ == "__main__":
     LoginHandler.auth_channel = options.channel
 
     for i in ADMINS:
-         get_character(i, callback=BaseHandler.ADMINS.append)
+        get_character(i, callback=BaseHandler.ADMINS.append)
 
     for i in FCS:
-         get_character(i, callback=BaseHandler.FCS.append)
+        get_character(i, callback=BaseHandler.FCS.append)
 
     application = web.Application(
         HANDLERS,
