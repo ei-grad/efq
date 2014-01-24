@@ -2,3 +2,5 @@
 *.swp
 *~
 .cookie_secret
+.coverage
+htmlcov

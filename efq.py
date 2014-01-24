@@ -92,6 +92,10 @@ CHARACTERS = {}
 redis = Redis()
 
 
+class CharacterNotFound(Exception):
+    pass
+
+
 @gen.coroutine
 def get_character(name):
 
@@ -122,7 +126,7 @@ def get_character(name):
             del CHARACTERS[name]
             msg = "Can't get charid for %s!" % name
             logger.error(msg)
-            raise Exception(msg)
+            raise CharacterNotFound(msg)
 
         try:
             fit = yield redis.get('efq:fitting:%s' % name)
@@ -161,8 +165,11 @@ class Character(object):
         self.callbacks = []
 
     def __repr__(self):
-        return '<Character:%s:%s at %s>' % (self.name, self.charid, id(self))
+        return '<Character:%s:%s at %s>' % (
+            self.name, self.charid, hex(id(self))
+        )
 
+    @property
     def is_admin(self):
         return self in BaseHandler.ADMINS
 
@@ -202,6 +209,20 @@ class Character(object):
         return d
 
 
+class CharacterInFleetFCS(Exception):
+    def __init__(self, character):
+        super(CharacterInFleetFCS, self).__init__(
+            'Character %s is in fleet FCs!' % character.name,
+        )
+
+
+class CharacterInOtherFleet(Exception):
+    def __init__(self, character):
+        super(CharacterInOtherFleet, self).__init__(
+            'Character %s is already in other fleet!' % character.name,
+        )
+
+
 class Fleet(object):
 
     def __init__(self, fc, fleet_type=None):
@@ -234,6 +255,10 @@ class Fleet(object):
         return self._fc
 
     def enqueue(self, character):
+        if character in self.fcs:
+            raise CharacterInFleetFCS(character)
+        if character.fleet is not None and character.fleet is not self:
+            raise CharacterInOtherFleet(character)
         if character in self.queue:
             self.queue.remove(character)
         self.queue.append(character)
@@ -344,7 +369,7 @@ class BaseHandler(web.RequestHandler):
 
     @property
     def trusted(self):
-        return self.eve['trusted'] == 'Yes'
+        return self.eve.get('trusted') == 'Yes'
 
     def add_message(self, message, cls='info'):
         self.character.add_message(message, cls)
