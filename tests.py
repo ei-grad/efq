@@ -13,7 +13,7 @@ from mock import patch, Mock
 
 from tornado import iostream
 from tornado.ioloop import IOLoop
-from tornado.testing import AsyncTestCase, AsyncHTTPTestCase, gen_test, get_async_test_timeout, ExpectLog
+from tornado.testing import AsyncHTTPTestCase, gen_test, get_async_test_timeout, ExpectLog
 from tornado.escape import native_str
 from tornado.web import Application, create_signed_value
 from tornado.httputil import HTTPHeaders, urlencode
@@ -130,6 +130,8 @@ class BaseTestCase(AsyncHTTPTestCase):
             eve_trust=kwargs.pop('eve_trust', True),
             logged_in=kwargs.pop('logged_in', self.logged_in)
         )
+        if 'follow_redirects' not in kwargs:
+            kwargs['follow_redirects'] = False
         return super(BaseTestCase, self).fetch(*args, **kwargs)
 
     def get_headers(self, headers=None, char=None, eve_trust=True, logged_in=None):
@@ -163,20 +165,25 @@ class BaseTestCase(AsyncHTTPTestCase):
         self.assertEqual(response.headers['location'], location)
 
     def assertRespContains(self, response, s, code=200):
-        if response.error:
+        if response.code == 599 and response.error:
             raise response.error
         self.assertEqual(response.code, code)
         self.assertIn(s, native_str(response.body))
 
 
-def get_cookies(resp):
-    cookies = SimpleCookie()
-    for i in resp.headers.get_list('Set-Cookie'):
+def get_cookies(response, cookies=None):
+    if cookies is None:
+        cookies = SimpleCookie()
+    for i in response.headers.get_list('Set-Cookie'):
         cookies.load(native_str(i))
     return cookies
 
 
-def get_cookie_headers(cookies):
+def get_cookie_headers(cookies=None, response=None):
+    if response is not None:
+        cookies = get_cookies(response, cookies)
+    if cookies is None:
+        return None
     headers = HTTPHeaders()
     headers.add('Cookie', '; '.join(
         i.OutputString([]) for i in cookies.values() if i.value
@@ -209,40 +216,48 @@ class TestAccess(BaseTestCase):
     fake_redis = True
 
     def test_trust(self):
-        resp = self.fetch('/login', follow_redirects=False)
+        resp = self.fetch('/login')
         self.assertEqual(resp.code, 200)
 
-    def test_no_trust(self):
+    # XXX: which page requires trust?
+    def disabled_test_no_trust(self):
         resp = self.fetch('/login', eve_trust=False)
         self.assertEqual(resp.code, 200)
         self.assertEqual(resp.effective_url, self.get_url('/trust'))
 
     def test_channel_auth(self):
 
-        with faketoken() as mock:
-            response = self.fetch('/login')
-            channel_auth_token = mock.side_effect.token
+        def login(char, cookies=None):
 
-        self.assertIn(channel_auth_token, native_str(response.body))
-        self.assertIn('"/login/channel_auth"', native_str(response.body))
-        self.assertIn('Set-Cookie', response.headers)
-        cookies = get_cookies(response)
-        self.assertIn('key', cookies)
+            with faketoken() as mock:
+                response = self.fetch('/login', char=char, headers=get_cookie_headers(cookies))
+                channel_auth_token = mock.side_effect.token
 
-        with patch('efq.ChannelAuthHandler.get_chat_logs') as mock:
-            s = EVELIVE_LINE % (self.testchar1.name.replace(' ', '_'), self.testchar1.name, channel_auth_token)
-            mock.side_effect = lambda callback: callback(Mock(body=s))
-            headers = HTTPHeaders()
-            headers.add('Cookie', cookies['key'].OutputString())
-            response = self.fetch('/login/channel_auth',
-                                  method='POST', body='',
-                                  headers=get_cookie_headers(cookies),
-                                  follow_redirects=False)
+            cookies = get_cookies(response, cookies)
 
-            self.assertIsRedirect(response, '/login/success')
+            self.assertRespContains(response, channel_auth_token)
+            self.assertRespContains(response, '"/login/channel_auth"')
+            self.assertIn('Set-Cookie', response.headers)
+            self.assertIn('key', cookies)
 
-        response = self.fetch('/login/success', headers=get_cookie_headers(get_cookies(response)))
-        self.assertRespContains(response, self.testchar1.name)
+            with patch('efq.ChannelAuthHandler.get_chat_logs') as mock:
+                s = EVELIVE_LINE % (char.name.replace(' ', '_'), char.name, channel_auth_token)
+                mock.side_effect = lambda callback: callback(Mock(body=s))
+                response = self.fetch('/login/channel_auth',
+                                      method='POST', body='',
+                                      headers=get_cookie_headers(cookies, response),
+                                      follow_redirects=False,
+                                      char=char)
+
+                self.assertIsRedirect(response, '/login/success')
+
+            response = self.fetch('/login/success', headers=get_cookie_headers(cookies, response), char=char)
+            self.assertRespContains(response, char.name)
+
+            return get_cookies(response, cookies)
+
+        cookies = login(self.testchar1)
+        login(self.testchar2, cookies)
 
     def test_mail_auth(self):
 
@@ -262,14 +277,13 @@ class TestAccess(BaseTestCase):
                         'mail_auth': 'asked',
                         'fc': self.testchar2.name,
                     }))
-                    event = {
-                        'mail_auth_request': {
-                            'token': mock.side_effect.token,
-                            'character': self.testchar1.name,
-                            'charid': self.testchar1.charid,
-                        }
+                    expected_event = {
+                        'action': 'mail_auth_request',
+                        'token': mock.side_effect.token,
+                        'character': self.testchar1.name,
+                        'charid': self.testchar1.charid,
                     }
-                    poll_cb.assert_called_once_with(event)
+                    poll_cb.assert_called_once_with(expected_event)
                     self.assertIsNotNone(mock.side_effect.token)
                     self.assertIsRedirect(
                         self.fetch("/login/token/%s" % mock.side_effect.token, follow_redirects=False),

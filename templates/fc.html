@@ -91,6 +91,14 @@
 
 {% end %}
 
+{% block poll_handlers %}
+if (data.action == 'mail_auth_request') {
+  $('<div>').addClass('mail_auth_request')
+    .text('Запрос аутентификации от ' + data.character + '.')
+  .appendTo($('body'));
+}
+{% end %}
+
 {% block addjs %}
 <script>
 function fleetInvite(name, charid) {

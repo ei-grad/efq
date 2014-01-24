@@ -2,7 +2,7 @@
 
 {% block content %}
 
-{% if auth_channel_failed %}
+{% if channel_auth == "failed" %}
 <div class="alert alert-danger">{{ _("Can't find the key! Try to wait a minute.") }}</div>
 {% end %}
 

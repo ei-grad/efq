@@ -190,6 +190,8 @@ class Character(object):
 
     def refresh(self, data=None):
         callbacks, self.callbacks = self.callbacks, []
+        if data is None:
+            data = {'action': 'refresh'}
         for callback in callbacks:
             if data is not None:
                 orig_callback = callback
@@ -322,7 +324,7 @@ class BaseHandler(web.RequestHandler):
     reload_on_poll = True
     fc_required = False
     admin_required = False
-    trust_required = True
+    trust_required = False
 
     @gen.coroutine
     def prepare(self):
@@ -451,7 +453,7 @@ class BaseLoginHandler(BaseHandler):
     def login_success(self, character):
         characters = self.get_secure_cookie('character')
         if characters is not None:
-            characters = set(characters.split(','))
+            characters = set(native_str(characters).split(','))
         else:
             characters = set()
         characters.add(character)
@@ -542,11 +544,10 @@ class MailAuthAskHandler(BaseLoginHandler):
             redis.expire(k, 600)
             fc = random.choice(online_fcs)
             fc.refresh({
-                'mail_auth_request': {
-                    'token': token,
-                    'character': charname,
-                    'charid': charid,
-                }
+                'action': 'mail_auth_request',
+                'token': token,
+                'character': charname,
+                'charid': charid,
             })
             self.redirect('/login?' + urlencode({
                 'mail_auth': 'asked',
@@ -602,10 +603,13 @@ class FleetsHandler(BaseFreeHandler):
         self.render('fleets.html', fleets=get_fleets_list())
 
     def post(self):
-        get_fleet(self.character, self.get_argument('fleet_type'))
-        for character in self.FREE_CHARS:
-            character.refresh()
-        self.redirect('/fc')
+        if self.character in FCS:
+            get_fleet(self.character, self.get_argument('fleet_type'))
+            for character in self.FREE_CHARS:
+                character.refresh()
+            self.redirect('/fc')
+        else:
+            self.send_error(403, reason="You are not a FC!")
 
 
 class JSONHandler(BaseHandler):
