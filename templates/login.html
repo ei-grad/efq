@@ -10,12 +10,13 @@
   <div class="panel-heading"><h3 class="panel-title">{{ _('Authentication via chat channel (using eve-live.com)') }}</h3></div>
   <div class="panel-body">
     <p>
-      {{ _('Send the following key to') }}
+      1. {{ _('Send the following key to') }}
       <a href='javascript:joinChannel("{{ auth_channel }}")'
         >{% raw escape(auth_channel).replace(' ', '&nbsp;') %}</a>:
     </p>
     <pre>{{ key }}</pre>
-    <p>{{ _('Now you have to wait some minutes.') }}</p>
+    <p>2. {{ _('Wait some minutes.') }}</p>
+    <p>3. {{ _('Click the "Check" button.') }}</p>
     <form method="POST" action="/login/channel_auth">
       {% module xsrf_form_html() %}
       <button class="btn" type="submit">{{ _('Check') }}</button>
@@ -33,8 +34,14 @@
            'There are %d FC online now. You can ask one of them to send an ingame email with authentication link for you.',
            FCS_ONLINE) % FCS_ONLINE }}
     </p>
-      <form method="POST" action="/login/mail_auth">
+      <form method="POST" action="/login/mail_auth" class="form">
         {% module xsrf_form_html() %}
+        {% if not trusted %}
+        <div class="form-group">
+          <label for="charname">{{ _('Enter your character name:') }}</label>
+          <input id="charname" name="charname" class="form-control" placeholder="{{ _('Character name') }}"/>
+        </div>
+        {% end %}
         <button class="btn" type="submit">{{ _('Ask') }}</button>
       </form>
     {% else %}

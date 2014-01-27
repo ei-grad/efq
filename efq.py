@@ -3,6 +3,7 @@
 
 from itertools import chain
 from uuid import uuid1
+from time import time
 import binascii
 import logging
 import os
@@ -12,7 +13,8 @@ import re
 
 import ujson as json
 
-from tornado import gen, ioloop, web, httpclient, httpserver, stack_context
+from tornado import gen, web, httpclient, httpserver
+from tornado.ioloop import IOLoop
 from tornado.options import options, define, parse_command_line
 from tornado.httputil import urlencode
 from tornado.escape import native_str
@@ -27,8 +29,6 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_TITLE = 'EVE Fleet Queue'
 DEFAULT_AUTH_CHANNEL = 'RAISA Shield'
-
-FLEET_TYPES = ['Vanguard (10)', 'Assault (20)', 'HQ (40)']
 
 PREFERRED_SHIPS = [
     'Vindicator',
@@ -89,6 +89,8 @@ FCS = ADMINS + [
 
 CHARACTERS = {}
 
+BANNED_IPS = set()
+
 redis = Redis()
 
 
@@ -96,12 +98,15 @@ class CharacterNotFound(Exception):
     pass
 
 
+http = httpclient.AsyncHTTPClient()
+
+
 @gen.coroutine
 def get_character(name):
 
-    logger.debug('Get character: %s', name)
-
     if name not in CHARACTERS:
+
+        logger.debug('Get character: %s', name)
 
         character = Character(name)
         CHARACTERS[name] = character
@@ -110,7 +115,7 @@ def get_character(name):
         url = '?'.join([url, urlencode({'names': name})])
 
         try:
-            response = yield httpclient.AsyncHTTPClient().fetch(url)
+            response = yield http.fetch(url)
             content = response.body.decode('utf-8')
 
             m = re.search(r'characterID="(\d+)"', content)
@@ -157,12 +162,13 @@ class Character(object):
     def __init__(self, name):
         logger.debug('Creating character %s', name)
         self.name = name
-        self.fleet = None
-        self.is_fc = False
-        self.fit = None
         self.charid = None
+        self.fleet = None
+        self.fit = None
+        self.waitlist = set()
         self.messages = []
         self.callbacks = []
+        self.events = []
 
     def __repr__(self):
         return '<Character:%s:%s at %s>' % (
@@ -174,40 +180,51 @@ class Character(object):
         return self in BaseHandler.ADMINS
 
     @property
+    def is_fc(self):
+        return self in BaseHandler.FCS
+
+    @property
     def ship(self):
         if self.fit is not None:
             return TYPES_BY_ID.get(self.fit.split(':', 1)[0],
-                                   {'name': 'Неопределен'})['name']
-        return 'Неопределен'
+                                   {'name': '-'})['name']
+        return '-'
 
     def add_message(self, message, cls='info'):
-        self.messages.append((str(uuid1()), message, cls))
+        msg = {
+            'uuid': str(uuid1()),
+            'content': message,
+            'cls': cls
+        }
+        self.messages.append(msg)
+        self.event({'action': 'add_message', 'message': msg})
 
-    def remove_message(self, msgid):
+    def remove_message(self, uuid):
         for i in list(self.messages):
-            if i[0] == msgid:
+            if i['uuid'] == uuid:
                 self.messages.remove(i)
 
-    def refresh(self, data=None):
-        callbacks, self.callbacks = self.callbacks, []
-        if data is None:
-            data = {'action': 'refresh'}
-        for callback in callbacks:
-            if data is not None:
-                orig_callback = callback
-                callback = lambda: orig_callback(data)
-            ioloop.IOLoop.instance().add_callback(callback)
+    def event(self, event=None):
+        if event is not None:
+            self.events.append((time(), event))
+        for callback in self.callbacks:
+            IOLoop.current().add_callback(callback)
 
-    def to_json(self, include_fit=False):
+    def to_json(self, fit=False, waitlist=False):
         d = {
             'name': self.name,
             'fleet': self.fleet.fc.name if self.fleet else None,
-            'is_fc': self.is_fc,
-            'is_admin': self.is_admin,
             'charid': self.charid,
         }
-        if include_fit:
-            d['fit'] = self.fit
+        if waitlist:
+            d.update({
+                'waitlist': list(self.waitlist),
+            })
+        if fit:
+            d.update({
+                'ship': self.ship,
+                'fit': self.fit,
+            })
         return d
 
 
@@ -235,21 +252,22 @@ class Fleet(object):
         self.fcs = [fc]
 
         fc.fleet = self
-        fc.is_fc = True
 
-        if fleet_type is None:
-            fleet_type = FLEET_TYPES[0]
-
-        self.fleet_type = fleet_type
-
+        self.fleet_type = "10"
+        self.system = None
         self.queue = []
+        self.members = []
+        self.status = 'forming'
 
-    def to_json(self):
+    def to_json(self, fit=False):
         return {
-            'fleet_type': self.fleet_type,
-            'fc': self.fc.name,
+            'fc': self.fc.to_json(fit),
             'fcs': [i.name for i in self.fcs],
+            'fleet_type': self.fleet_type,
+            'system': self.system,
             'queue': [i.name for i in self.queue],
+            'members': [i.name for i in self.members],
+            'status': self.status,
         }
 
     @property
@@ -265,21 +283,16 @@ class Fleet(object):
             self.queue.remove(character)
         self.queue.append(character)
         character.fleet = self
-        character.is_fc = False
-        for fc in self.fcs:
-            fc.refresh()
-        for i in self.queue:
-            i.refresh()
+        character.event({'action': 'update_status'})
+        self.event({'action': 'update_queue', 'fleet': self.fc})
 
     def dequeue(self, character):
         if character in self.queue:
             self.queue.remove(character)
-        for fc in self.fcs:
-            fc.refresh()
         character.fleet = None
-        character.refresh()
+        character.event()
         for i in self.queue:
-            i.refresh()
+            i.event()
 
     def transfer(self, to):
 
@@ -292,19 +305,11 @@ class Fleet(object):
 
         for i in chain(self.fcs, self.queue, self.fc):
             i.fleet = flt
-            i.refresh()
+            i.event({'action': 'remove_fleet', 'fleet': self.fc.name})
+            i.event({'action': 'new_fleet', 'fleet': to.name})
 
-    def dismiss(self):
 
-        del FLEETS[self.fc]
-
-        for i in chain(self.fcs, self.queue):
-            i.fleet = None
-            i.is_fc = False
-            i.add_message('Флот был распущен.')
-
-        for i in chain(self.fcs, self.queue, BaseHandler.FREE_CHARS):
-            i.refresh()
+_DEFAULT = object()
 
 
 class BaseHandler(web.RequestHandler):
@@ -312,9 +317,15 @@ class BaseHandler(web.RequestHandler):
     uuid = str(uuid1())
 
     FREE_CHARS = set()
+    WAITLIST = []
     ONLINE = set()
     FCS = []
     ADMINS = []
+
+    EVENTS = []
+    FC_EVENTS = []
+
+    GUEST_CALLBACKS = set()
 
     title = DEFAULT_TITLE
 
@@ -329,9 +340,11 @@ class BaseHandler(web.RequestHandler):
     @gen.coroutine
     def prepare(self):
 
-        super(BaseHandler, self).prepare()
+        if self.request.remote_ip in BANNED_IPS:
+            self.send_error(500)
+            raise gen.Return(None)
 
-        logger.debug(self.request.headers)
+        self.xsrf_token
 
         self.character = None
         self.eve = {}
@@ -340,53 +353,44 @@ class BaseHandler(web.RequestHandler):
 
         self.eve['trusted'] = self.request.headers.get('Eve_trusted')
 
-        if self.eve['trusted'] == 'Yes' or not self.trust_required:
-
+        if self.eve['trusted'] == 'Yes':
             if self.eve['trusted'] == 'Yes':
                 self.eve = dict(
                     (header[4:].lower(), value)
                     for header, value in self.request.headers.get_all()
                     if header[:3] == 'Eve'
                 )
-
-            characters = self.get_secure_cookie('character', None)
-
-            if characters:
-                characters = native_str(characters).split(',')
-                if self.eve.get('charname') in characters:
-                    name = self.eve['charname']
-                    self.character = yield get_character(name)
-
-            if self.character is None and self.login_required:
-                self.redirect('/login')
-            elif self.admin_required and self.character.name not in ADMINS:
-                self.send_error(403)
-            elif self.fc_required and self.character.name not in FCS:
-                self.send_error(403)
-            else:
-                self.check_status_required()
-
-        else:
+        elif self.trust_required:
             self.redirect('/trust')
+            raise gen.Return(None)
 
-    @property
-    def trusted(self):
-        return self.eve.get('trusted') == 'Yes'
+        characters = self.get_secure_cookie('character', None)
 
-    def add_message(self, message, cls='info'):
-        self.character.add_message(message, cls)
+        if characters:
+            characters = native_str(characters).split(',')
+            eve_charname = self.eve.get('charname')
+            if eve_charname:
+                if eve_charname in characters:
+                    self.character = yield get_character(eve_charname)
+            else:
+                self.character = yield get_character(characters[0])
+
+        if self.character is None and self.login_required:
+            self.redirect('/login')
+        elif self.admin_required and not self.character.is_admin:
+            self.send_error(403)
+        elif self.fc_required and not self.character.is_fc:
+            self.send_error(403)
+        else:
+            self.check_status_required()
 
     def get_character_status(self):
         if self.character is None:
             return 'guest'
-        if self.character.fleet is None:
+        if self.character.fleet is None and self.character not in self.WAITLIST:
             if self.character not in self.FREE_CHARS:
                 self.FREE_CHARS.add(self.character)
             return 'free'
-        elif self.character.is_fc is True:
-            if self.character in self.FREE_CHARS:
-                self.FREE_CHARS.remove(self.character)
-            return 'fc'
         else:
             if self.character in self.FREE_CHARS:
                 self.FREE_CHARS.remove(self.character)
@@ -396,17 +400,53 @@ class BaseHandler(web.RequestHandler):
         if self.status_required is not None:
             status = self.get_character_status()
             if status != self.status_required:
-                self.redirect({
-                    'guest': '/login',
-                    'free': '/',
-                    'fc': '/fc',
-                    'queue': '/queue',
-                }[status])
+                self.send_error(403)
+                #self.redirect({
+                #    'guest': '/login',
+                #    'free': '/',
+                #    'fc': '/fc',
+                #    'queue': '/queue',
+                #}[status])
+
+    def event(self, event):
+        """Add global event.
+        """
+        self.EVENTS.append((time(), event))
+        # notify characters
+        for i in self.ONLINE:
+            i.event()
+        # notify guests
+        for i in self.GUEST_CALLBACKS:
+            IOLoop.current().add_callback(i)
+
+    def fc_event(self, event):
+        """Add event for FCs
+        """
+        self.FC_EVENTS.append((time(), event))
+        for i in self.ONLINE.intersection(self.FCS):
+            i.event()
+
+    @property
+    def trusted(self):
+        return self.eve.get('trusted') == 'Yes'
+
+    def add_message(self, message, cls='info'):
+        self.character.add_message(message, cls)
+
+    def get_bool(self, key, default=_DEFAULT):
+        if default is _DEFAULT:
+            val = self.get_argument(key)
+        else:
+            val = self.get_argument(key, None)
+
+        if val is None:
+            return default
+
+        return val.lower() in ('true', '1', 'yes')
 
     def render(self, *args, **kwargs):
         default_kwargs = {
             'title': self.title,
-            'FLEET_TYPES': FLEET_TYPES,
             'PREFERRED_SHIPS': PREFERRED_SHIPS,
             'FREE_CHARS': self.FREE_CHARS,
             'ONLINE': self.ONLINE,
@@ -416,16 +456,76 @@ class BaseHandler(web.RequestHandler):
             'trusted': self.trusted,
             'eve': self.eve,
             'character': self.character,
+            'fleets': FLEETS,
             'messages': self.character.messages if self.character else [],
         }
         default_kwargs.update(kwargs)
         return super(BaseHandler, self).render(*args, **default_kwargs)
 
 
+class AngularHandler(BaseHandler):
+    login_required = False
+    def get(self):
+        if native_str(self.get_secure_cookie('uuid')) != self.uuid:
+            self.set_secure_cookie('uuid', self.uuid)
+        self.set_cookie('ts', '%f' % time())
+        self.render('angular.html')
+
+
+class JsonMixin(object):
+    def finish(self, data=None):
+        self.set_header('Content-Type', 'application/json')
+        if data is not None:
+            super(JsonMixin, self).finish(json.dumps(data))
+        else:
+            super(JsonMixin, self).finish()
+
+
+class WaitlistHandler(JsonMixin, BaseHandler):
+
+    def get(self):
+        self.finish(list(self.character.waitlist))
+
+    def post(self):
+        fleet_type = self.get_argument('fleet_type')
+        if fleet_type not in self.character.waitlist:
+            self.character.add_message((
+                'You have been added to a common %s fleets waitlist.'
+            ) % fleet_type)
+            self.character.waitlist.add(fleet_type)
+        else:
+            self.character.add_message(
+                'You have left a common %s fleets waitlist.' % fleet_type
+            )
+            self.character.waitlist.remove(fleet_type)
+
+        if self.character.waitlist:
+            if self.character not in self.WAITLIST:
+                self.WAITLIST.append(self.character)
+        else:
+            if self.character in self.WAITLIST:
+                self.WAITLIST.remove(self.character)
+
+        e = {
+            'action': 'user_waitlist_changed',
+            'charname': self.character.name,
+            'waitlist': list(self.character.waitlist),
+        }
+
+        for i in self.ONLINE:
+            i.event(e)
+
+        self.character.event({
+            'action': 'self_waitlist_changed',
+            'waitlist': list(self.character.waitlist),
+        })
+
+        self.get()
+
+
 class TrustHandler(BaseHandler):
 
     login_required = False
-    trust_required = False
 
     def get(self):
         if self.trusted:
@@ -434,31 +534,25 @@ class TrustHandler(BaseHandler):
             self.render('trust.html')
 
 
-class BaseLoginHandler(BaseHandler):
-
-    status_required = 'guest'
-    login_required = False
-    auth_channel = DEFAULT_AUTH_CHANNEL
-
-    def generate_token(self, length):
-        return binascii.b2a_hex(os.urandom(length))
-
-    def render(self, *args, **kwargs):
-        kwargs['auth_channel'] = self.auth_channel
-        kwargs['key'] = self.key
-        if 'auth_channel_failed' not in kwargs:
-            kwargs['auth_channel_failed'] = False
-        super(BaseLoginHandler, self).render(*args, **kwargs)
-
-    def login_success(self, character):
+class LoginSuccessMixin(object):
+    def login_success(self, charname):
         characters = self.get_secure_cookie('character')
-        if characters is not None:
+        if characters:
             characters = set(native_str(characters).split(','))
         else:
             characters = set()
-        characters.add(character)
+        characters.add(charname)
         self.set_secure_cookie('character', ','.join(characters))
         self.redirect('/login/success')
+
+
+def generate_token(length):
+    return native_str(binascii.b2a_hex(os.urandom(length)))
+
+
+class BaseLoginHandler(LoginSuccessMixin, BaseHandler):
+    login_required = False
+    auth_channel = DEFAULT_AUTH_CHANNEL
 
 
 class TemplateMixin(object):
@@ -474,16 +568,23 @@ class TemplateMixin(object):
 
 class ChannelAuthKeyMixin(object):
     def prepare(self):
-        super(ChannelAuthKeyMixin, self).prepare()
-        self.key = self.get_secure_cookie('key')
+        self.key = native_str(self.get_secure_cookie('key'))
         if self.key is None:
-            self.key = self.generate_token(8)
+            self.key = generate_token(8)
             self.set_secure_cookie('key', self.key)
+        return super(ChannelAuthKeyMixin, self).prepare()
 
 
 class LoginHandler(ChannelAuthKeyMixin, TemplateMixin, BaseLoginHandler):
     template = 'login.html'
     optional_get_params = ['mail_auth', 'channel_auth']
+
+    def render(self, *args, **kwargs):
+        kwargs['auth_channel'] = self.auth_channel
+        kwargs['key'] = self.key
+        if 'auth_channel_failed' not in kwargs:
+            kwargs['auth_channel_failed'] = False
+        super(BaseLoginHandler, self).render(*args, **kwargs)
 
 
 class LoginSuccessHandler(TemplateMixin, BaseHandler):
@@ -495,29 +596,27 @@ class ChannelAuthHandler(ChannelAuthKeyMixin, BaseLoginHandler):
     @gen.coroutine
     def get_chat_logs(self):
         url = "http://eve-live.com/%s" % self.auth_channel.replace(" ", "_")
-        response = yield httpclient.AsyncHTTPClient().fetch(url)
+        response = yield http.fetch(url)
         raise gen.Return(response)
 
     @gen.coroutine
     def post(self):
 
         response = yield gen.Task(self.get_chat_logs)
-        content = response.body
-
+        content = native_str(response.body)
         r = native_str(
             r'<a href="/%s/p/([^"]+)" style="color:#FC3;">([^>]+)</a>'
             r'&gt; %s </td>'
         )
-        r = r % (self.auth_channel.replace(' ', '_'), native_str(self.key))
-
-        m = re.search(r, native_str(content))
+        r = r % (self.auth_channel.replace(' ', '_'), self.key)
+        m = re.search(r, content)
 
         if m is not None and m.group(2) == m.group(1).replace('_', ' '):
-            character = m.group(2)
+            charname = m.group(2)
             self.clear_cookie('key')
             logger.debug('%s has been authenticated with EVE headers: %s',
-                         character, self.eve)
-            self.login_success(character)
+                         charname, self.eve)
+            self.login_success(charname)
         else:
             self.redirect("/login?channel_auth=failed")
 
@@ -525,16 +624,19 @@ class ChannelAuthHandler(ChannelAuthKeyMixin, BaseLoginHandler):
 class MailAuthAskHandler(BaseLoginHandler):
     @gen.coroutine
     def post(self):
-        online_fcs = list(self.ONLINE.intersection(self.FCS))
-        if online_fcs:
-            charname = self.eve.get('charname')
-            charname = self.get_argument('charname', charname)
-            charid = self.eve.get('charid')
-            if charid is None:
-                character = yield get_character(charname)
-                charid = character.charid
 
-            token = self.generate_token(16)
+        online_fcs = list(self.ONLINE.intersection(self.FCS))
+
+        if online_fcs:
+
+            if self.trusted:
+                charname = self.eve.get('charname')
+            else:
+                charname = self.get_argument('charname')
+
+            character = yield get_character(charname)
+
+            token = generate_token(16)
 
             logger.debug('Auth link for %s: http://%s/login/token/%s',
                          charname, self.request.host, token)
@@ -543,11 +645,10 @@ class MailAuthAskHandler(BaseLoginHandler):
             redis.set(k, charname)
             redis.expire(k, 600)
             fc = random.choice(online_fcs)
-            fc.refresh({
+            fc.event({
                 'action': 'mail_auth_request',
                 'token': token,
-                'character': charname,
-                'charid': charid,
+                'character': character.to_json(),
             })
             self.redirect('/login?' + urlencode({
                 'mail_auth': 'asked',
@@ -583,14 +684,10 @@ class LogoutHandler(TemplateMixin, BaseHandler):
     reload_on_poll = False
 
     def post(self):
-        characters = self.get_secure_cookie('character').split(',')
+        characters = native_str(self.get_secure_cookie('character')).split(',')
         characters.remove(self.character.name)
         self.set_secure_cookie('character', ','.join(characters))
         self.redirect('/')
-
-
-def get_fleets_list():
-    return sorted(FLEETS.values(), key=lambda x: x.fleet_type)
 
 
 class BaseFreeHandler(BaseHandler):
@@ -598,28 +695,12 @@ class BaseFreeHandler(BaseHandler):
 
 
 class FleetsHandler(BaseFreeHandler):
-
-    def get(self):
-        self.render('fleets.html', fleets=get_fleets_list())
-
+    fc_required = True
     def post(self):
-        if self.character in FCS:
-            get_fleet(self.character, self.get_argument('fleet_type'))
-            for character in self.FREE_CHARS:
-                character.refresh()
-            self.redirect('/fc')
-        else:
-            self.send_error(403, reason="You are not a FC!")
-
-
-class JSONHandler(BaseHandler):
-    def finish(self, data):
-        super(JSONHandler, self).finish(json.dumps(data))
-
-
-class FleetsJSONHandler(JSONHandler):
-    def get(self):
-        self.finish(dict((i.fc.name, i.to_json()) for i in get_fleets_list()))
+        fleet = get_fleet(self.character, self.get_argument('fleet_type'))
+        self.event({'action': 'new_fleet', 'fleet': fleet.to_json()})
+        self.character.event({'action': 'self_character',
+                              'fleet': fleet.fc.name})
 
 
 class JoinHandler(BaseFreeHandler):
@@ -646,39 +727,36 @@ class LeaveHandler(BaseQueueHandler):
         self.redirect('/')
 
 
-class QueueHandler(BaseQueueHandler):
-    def get(self):
-        self.render('queue.html',
-                    fleet=self.character.fleet,
-                    queue=self.character.fleet.queue)
-
-
-class BaseFCHandler(BaseHandler):
-    status_required = 'fc'
+class TypeHandler(BaseHandler):
     fc_required = True
-
-
-class FCHandler(BaseFCHandler):
-    def get(self):
-        self.render('fc.html', fleet=self.character.fleet)
-
-
-class TypeHandler(BaseFCHandler):
     def post(self):
         fleet = self.character.fleet
         fleet.fleet_type = self.get_argument('fleet_type')
         for i in chain(self.FREE_CHARS, fleet.fcs, fleet.queue):
-            i.refresh()
+            i.event()
         self.redirect('/fc')
 
 
-class DismissHandler(BaseFCHandler):
-    def post(self):
-        self.character.fleet.dismiss()
+class DismissHandler(BaseHandler):
+    fc_required = True
+    def post(self, fc):
+
+        fleet = FLEETS[fc]
+
+        del FLEETS[fc]
+
+        for i in chain(fleet.fcs, fleet.queue, fleet.members):
+            i.fleet = None
+            i.add_message('Флот был распущен.')
+
+        for i in self.ONLINE:
+            i.event({'action': 'remove_fleet', 'fleet': fleet.fc.name})
+
         self.redirect('/')
 
 
-class TransferHandler(BaseFCHandler):
+class TransferHandler(BaseHandler):
+    fc_required = True
     @gen.coroutine
     def post(self):
         name = self.get_argument('to')
@@ -689,7 +767,8 @@ class TransferHandler(BaseFCHandler):
         self.redirect('/fc')
 
 
-class InviteHandler(BaseFCHandler):
+class InviteHandler(BaseHandler):
+    fc_required = True
     @gen.coroutine
     def post(self):
         character = yield get_character(self.get_argument('character'))
@@ -698,7 +777,8 @@ class InviteHandler(BaseFCHandler):
         self.redirect('/fc')
 
 
-class DeclineHandler(BaseFCHandler):
+class DeclineHandler(BaseHandler):
+    fc_required = True
     @gen.coroutine
     def post(self):
         character = yield get_character(self.get_argument('character'))
@@ -707,49 +787,75 @@ class DeclineHandler(BaseFCHandler):
         self.redirect('/fc')
 
 
-class AddFCHandler(BaseFCHandler):
-    @gen.coroutine
-    def post(self):
-        character = yield get_character(self.get_argument('character'))
-        fleet = self.character.fleet
-        if character.fleet is None or character.fleet == fleet:
-            character.add_message('%s сделал вас ФК' % self.character.name)
-            fleet.fcs.append(character)
-            character.fleet = fleet
-            character.is_fc = True
-            for i in fleet.fcs:
-                i.refresh()
-        else:
-            self.add_message('%s уже находится в другом флоте.')
-        self.redirect('/fc')
+class PollHandler(JsonMixin, BaseHandler):
 
-
-class PollHandler(BaseHandler):
+    login_required = False
 
     @web.asynchronous
     def get(self):
+
+        self.ts = float(self.get_cookie('ts')) if self.get_cookie('ts') is not None else time()
+
+        events = self.get_events()
+
+        if events:
+            self.finish(events)
+            return
+
         if self.character is not None:
-            self.set_header('Content-Type', 'application/json')
-            if self.get_secure_cookie('uuid') != self.uuid:
+            if native_str(self.get_secure_cookie('uuid')) != self.uuid:
                 logger.debug('Character %s has bad uuid cookie',
                              self.character.name)
                 self.set_secure_cookie('uuid', self.uuid)
-                self.finish('{"action": "reload"}')
+                self.finish([{"action": "reload"}])
             else:
-                logger.debug('%s: poll started', self.character.name)
                 if self.character not in self.ONLINE:
                     self.ONLINE.add(self.character)
-                self.cb = stack_context.wrap(self.finish)
-                self.character.callbacks.append(self.cb)
+                self.character.callbacks.append(self.event)
         else:
-            self.finish()
+            self.GUEST_CALLBACKS.append(self.event)
+
+    def filter_events(self, events):
+        return list(filter(lambda x: x[0] >= self.ts, events))
+
+    def get_events(self):
+        events = self.filter_events(self.EVENTS)
+        if self.character:
+            events.extend(self.filter_events(self.character.events))
+            if self.character.is_fc:
+                events.extend(self.filter_events(self.FC_EVENTS))
+        events.sort(key=lambda x: x[0])
+        return list(i[1] for i in events)
+
+    def event(self):
+        if self._finished:
+            return
+        if time() - self.ts < 1.:
+            return
+        events = self.get_events()
+        if events:
+            self.finish(events)
+
+    def finish(self, events=None):
+        if events is not None:
+            self.remove_callback()
+            self.set_cookie('ts', '%f' % time())
+            super(PollHandler, self).finish(events)
+        else:
+            super(PollHandler, self).finish()
+
+    def remove_callback(self):
+        if self.character:
+            if self.event in self.character.callbacks:
+                self.character.callbacks.remove(self.event)
+                if not self.character.callbacks and self.character in self.ONLINE:
+                    self.ONLINE.remove(self.character)
+        else:
+            if self.event in self.GUEST_CALLBACKS:
+                self.GUEST_CALLBACKS.remove(self.event)
 
     def on_connection_close(self):
-        logger.debug('%s: poll finished', self.character.name)
-        if self.cb in self.character.callbacks:
-            self.character.callbacks.remove(self.cb)
-            if not self.character.callbacks and self.character in self.ONLINE:
-                self.ONLINE.remove(self.character)
+        self.remove_callback()
 
 
 class CharacterIDHandler(web.RequestHandler):
@@ -760,7 +866,7 @@ class CharacterIDHandler(web.RequestHandler):
         self.finish(character.charid)
 
 
-class AdminHandler(TemplateMixin, BaseHandler):
+class AdminHandler(TemplateMixin, LoginSuccessMixin, BaseHandler):
 
     template = 'admin.html'
     admin_required = True
@@ -768,17 +874,13 @@ class AdminHandler(TemplateMixin, BaseHandler):
     def post(self):
         action = self.get_argument('action')
         if action == 'fake_character':
-            self.set_secure_cookie('character', self.get_argument('character'))
-            self.clear_cookie('key')
-            return self.redirect('/')
-        elif action == 'fleet_types':
-            fleet_types = self.get_argument('fleet_types')
-            for i in reversed(range(len(FLEET_TYPES))):
-                FLEET_TYPES.pop(i)
-            FLEET_TYPES.extend(fleet_types.splitlines())
-            return self.redirect('/')
+            return self.login_success(self.get_argument('charname'))
         else:
             self.send_error(400)
+
+class DevelHandler(AdminHandler):
+    login_required = False
+    admin_required = False
 
 
 try:
@@ -853,18 +955,25 @@ class FitHandler(BaseHandler):
 
         redis.set('efq:fitting:%s' % self.character.name, self.character.fit)
 
-        if self.character.fleet is not None:
-            for fc in self.character.fleet.fcs:
-                fc.refresh()
+        self.fc_event({
+            'action': 'fit_updated',
+            'charname': self.character.name,
+            'ship': self.character.ship,
+            'fit': self.character.fit,
+        })
 
-        self.character.refresh()
+        self.character.event({
+            'action': 'self_fit_updated',
+            'ship': self.character.ship,
+            'fit': self.character.fit,
+        })
 
         self.redirect('/')
 
 
-class ReadHandler(BaseHandler):
+class MessageHandler(BaseHandler):
     def post(self):
-        self.character.remove_message(self.get_argument('msg'))
+        self.character.remove_message(native_str(self.get_argument('uuid')))
 
 
 try:
@@ -876,29 +985,31 @@ except:
 
 
 HANDLERS = [
-    (r"/", FleetsHandler),
-    (r"/addfc", AddFCHandler),
+    (r"/", AngularHandler),
     (r"/admin", AdminHandler),
-    (r"/charid", CharacterIDHandler),
+    (r"/fit", FitHandler),
+    (r"/login", LoginHandler),
+    (r"/trust", TrustHandler),
+
+
+    (r"/fleets", FleetsHandler),
     (r"/decline", DeclineHandler),
     (r"/dismiss", DismissHandler),
-    (r"/fc", FCHandler),
-    (r"/fit", FitHandler),
     (r"/invite", InviteHandler),
     (r"/join", JoinHandler),
     (r"/leave", LeaveHandler),
-    (r"/login", LoginHandler),
+    (r"/message", MessageHandler),
+    (r"/transfer", TransferHandler),
+    (r"/type", TypeHandler),
+    (r"/waitlist", WaitlistHandler),
+
     (r"/login/channel_auth", ChannelAuthHandler),
     (r"/login/mail_auth", MailAuthAskHandler),
     (r"/login/token/([0-9a-f]+)", MailAuthHandler),
     (r"/login/success", LoginSuccessHandler),
     (r"/logout", LogoutHandler),
+
     (r"/poll", PollHandler),
-    (r"/queue", QueueHandler),
-    (r"/read", ReadHandler),
-    (r"/transfer", TransferHandler),
-    (r"/trust", TrustHandler),
-    (r"/type", TypeHandler),
 ]
 
 
@@ -916,6 +1027,15 @@ if __name__ == "__main__":
     define('user', type=str, default='')
 
     parse_command_line()
+
+    if options.user:
+        if options.devel:
+            logger.warning('Auto-reloading with priveledge dropping is not '
+                           'supported. Development mode disabled.')
+            options.devel = False
+
+    if options.devel:
+        HANDLERS.append((r'/devel', DevelHandler))
 
     logging.getLogger('tornado.general').setLevel(logging.INFO)
 
@@ -938,13 +1058,10 @@ if __name__ == "__main__":
         xsrf_cookies=True,
     )
 
-    server = httpserver.HTTPServer(application, xheaders=True)
+    server = httpserver.HTTPServer(application, xheaders=False)
     server.listen(options.port, options.host)
 
     if options.user:
-        if options.devel:
-            logger.warning('Auto-reloading with priveledge dropping is not '
-                           'supported. Development mode disabled.')
         os.setuid(pwd.getpwnam(options.user).pw_uid)
 
-    ioloop.IOLoop.instance().start()
+    IOLoop.instance().start()

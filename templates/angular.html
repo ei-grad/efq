@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html ng-app="efqApp">
+
+  <head>
+    <title>{{ title }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Bootstrap -->
+    <link href="{{ static_url('css/bootstrap.min.css') }}" rel="stylesheet">
+
+    <!-- Icons -->
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
+
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <script src="{{ static_url('js/bootstrap.min.js') }}"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.9/angular.min.js"></script>
+
+    <script>
+    function getCookie(name) {
+      var r = document.cookie.match("\\b" + name + "=([^;]*)\\b");
+      return r ? r[1] : undefined;
+    }
+    function deleteCookie(name) {
+      document.cookie = name+'="";-1; path=/';
+    }
+    $.ajaxSetup({headers: {'X-XSRFToken': getCookie("_xsrf")} });
+
+    var efq = angular.module('efqApp', []);
+
+    efq.filter('character', function($sce) {
+      return function(data) {
+        return $sce.trustAsHtml('<a class="igb" href="javascript:CCPEVE.showInfo(1377, ' + data.charid + ')">' + data.name.replace(" ", "&nbsp;") + '</a>');
+      }
+    })
+
+    var types = {
+      10: "{{ _('VG') }}",
+      20: "{{ _('AS') }}",
+      40: "{{ _('HQ') }}",
+    };
+
+    efq.filter('fleet_type', function() {
+      return function(t) {
+        if (types[t]) {
+          return types[t];
+        } else {
+          return t;
+        }
+      }
+    });
+
+    function array(obj) {
+        var ret = [];
+        angular.forEach(obj, function(item) {
+          ret.push(item);
+        });
+       return ret;
+      };
+
+    efq.filter('array', function() {
+      return array;
+    });
+
+    var poll_actions = {};
+
+    poll_actions.reload = function (data) {
+      setTimeout(function(){document.location.reload()}, 1000);
+    }
+
+    efq.controller('EFQCtrl', function($scope) {
+
+      $scope.types = types;
+
+      function polling() {
+          $.getJSON('/poll')
+          .done(function(events) {
+            setTimeout(polling, 1000);
+            events.forEach(function(data) {
+              if (poll_actions[data.action]) {
+                console.log('Handling ' + data.action + ' event:', data);
+                poll_actions[data.action](data);
+              } else {
+                console.log('Unknown event:', data);
+              }
+              $scope.$digest();
+            })
+          })
+          .fail(function() {
+            setTimeout(polling, 5000);
+          })
+      }
+
+      $(polling);
+
+      $scope.view = 'fleets';
+      $scope.eve = {% raw json_encode(eve) %};
+      $scope.fleets = {% raw json_encode(dict((fleet.fc.name, fleet.to_json()) for fleet in fleets.values())) %};
+      $scope.fleets_array = array($scope.fleets);
+
+      console.log($scope.fleets_array);
+
+      {% if character %}
+      <!-- Character related stuff -->
+
+      {% if character.is_fc %} 
+      poll_actions.mail_auth_request = function (data) {
+        var msg = "{{ _('Your auth link is:') + ' http://' + request.host + '/login/token/' }}" + data.token + ".";
+        CCPEVE.sendMail(data.character.charid, "{{ _('EFQ Authentication') }}", msg);
+      }
+      $scope.new_fleet_form = {fleet_type: '10'};
+      $scope.newFleet = function() {
+        $.post('/fleets', {fleet_type: $scope.new_fleet_form.fleet_type});
+        $scope.view = "{{ character.name }}";
+      }
+      {% end %}
+
+
+      $scope.character = {% raw json_encode(character.to_json(waitlist=True, fit=True)) %}
+      $scope.messages = {% raw json_encode(character.messages) %};
+
+      $scope.toggle_waitlist = function(fleet_type) {
+        $.post('/waitlist', {fleet_type: fleet_type});
+      }
+
+      poll_actions.self_waitlist_changed = function(data) {
+        $scope.character.waitlist = data.waitlist;
+      }
+
+      poll_actions.add_message = function(data) {
+        $scope.messages.push(data.message);
+      }
+
+      poll_actions.self_character = function(data) {
+        angular.forEach(data, function(value, key) {
+          $scope.character[key] = value;
+        });
+      }
+
+      <!-- Character related stuff -->
+      {% end %}
+
+      $scope.readMessage = function(msg) {
+        $.post('/message', {uuid: msg.uuid});
+        for (var i=0; i<$scope.messages.length; i++) {
+          if ($scope.messages[i].uuid == msg.uuid) {
+            $scope.messages.splice(i, 1);
+            break;
+          }
+        }
+      }
+
+      poll_actions.user_waitlist_changed = function(data) {
+        $scope.waitlist[data.charname] = data.waitlist
+      }
+
+      poll_actions.new_fleet = function(data) {
+        console.log(data);
+        $scope.fleets[data.fleet.fc.name] = data.fleet;
+        $scope.fleets_array.push(data.fleet);
+        console.log(data);
+      }
+
+    });
+    </script>
+
+    {% block addjs %}
+    {% end %}
+
+  </head>
+
+  <body ng-controller="EFQCtrl">
+
+    <!-- Static navbar -->
+    <div class="navbar navbar-default" role="navigation">
+      <div class="navbar-header">
+        <div class="navbar-toggle" data-toggle="collapse"
+          data-target=".navbar-collapse"><i class="fa fa-bars"></i></div>
+        <a class="navbar-brand" href="/">{{ title }}</a>
+      </div>
+      <div class="navbar-collapse collapse">
+        <ul class="nav navbar-nav">
+          <li><a href="http://raisa.su/">{{ _('Home') }}</a></li>
+          <li class="active"><a href="/">{{ _('EFQ') }}</a></li>
+          <li><a href="http://raisa.su/rules">{{ _('Rules') }}</a></li>
+          <li><a href="http://raisa.su/fits">{{ _('Fits') }}</a></li>
+          <li><a href="http://raisa.su/srp">{{ _('SRP') }}</a></li>
+          <li><a href="http://raisa.su/guides">{{ _('Guides') }}</a></li>
+          <li><a href="http://raisa.su/about">{{ _('About us') }}</a></li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+          {% if character is not None %}
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ character.name }} <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              {% if character.is_admin %}<li><a href="/admin">{{ _('Admin') }}</a></li>{% end %}
+              <li><a href="/fit">{{ _('Fit') }}</a></li>
+              <li><a href="/logout">{{ _('Logout') }}</a></li>
+            </ul>
+          </li>
+          {% elif trusted %}
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ eve['charname'] }} <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li><a href="/login">{{ _('Authenticate') }}</a></li>
+            </ul>
+          </li>
+          {% end %}
+        </ul>
+      </div><!--/.nav-collapse -->
+    </div>
+
+    <div class="container">
+
+      <div class="alert alert-{{! msg.cls }}" ng-repeat="msg in messages">
+          <button type="button" class="close" ng-click='readMessage(msg)'>&times;</button>
+          <p ng-bind="msg.content"></p>
+      </div>
+
+      <div class="row">
+        <div class="col-xs-12">
+          {% if character %}
+          <div class="pull-right">
+            <div class="btn-group" ng-show="!character.fleet">
+              <button class="btn"
+                      ng-class="{'btn-success': character.waitlist.indexOf('10') != -1,
+                                 'btn-default': character.waitlist.indexOf('10') == -1}"
+                      ng-click="toggle_waitlist(10)" />{{ _('VG') }}</button>
+              <button class="btn"
+                      ng-class="{'btn-success': character.waitlist.indexOf('20') != -1,
+                                 'btn-default': character.waitlist.indexOf('20') == -1}"
+                      ng-click="toggle_waitlist(20)" />{{ _('AS') }}</button>
+              <button class="btn"
+                      ng-class="{'btn-success': character.waitlist.indexOf('40') != -1,
+                                 'btn-default': character.waitlist.indexOf('40') == -1}"
+                      ng-click="toggle_waitlist(40)" />{{ _('HQ') }}</button>
+            </div>
+            <button class="btn"
+                    ng-show="character.fleet"
+                    ng-class="{'btn-info': !inQueue(character), 'btn-default': inQueue(character)}"
+                    ng-click="view=character.fleet">
+                <i class="fa fa-male"></i>
+                <span ng-bind="character.fleet"></span>
+            </button>
+          </div>
+          {% else %}
+          <div class="well">{% raw _('You have to <a href="/login">authenticate</a> to join a waitlist.') %}</div>
+          {% end %}
+
+          <div class="btn-group">
+            <button class="btn btn-default" ng-class="{'btn-primary': view=='fleets'}" ng-click="view='fleets'">{{ _('Fleets') }}</button>
+            <button class="btn btn-default" ng-class="{'btn-primary': view=='waitlist'}" ng-click="view='waitlist'">{{ _('Waitlist') }}</button>
+            {% if character and character.is_fc %}
+            <button class="btn btn-default" ng-class="{'btn-primary': view=='fc'}" ng-click="view='fc'">{{ _('FC') }}</button>
+            {% end %}
+          </div>
+        </div>
+      </div>
+
+      <br/>
+
+      <div ng-show="view=='fleets'">
+        <div class="row" ng-show='fleets_array.length > 0'>
+          <div class="btn-group btn-group-vertical col-xs-12">
+            <button class="btn btn-default" ng-repeat="fleet in fleets" ng-click="$parent.view=fleet.fc.name">
+              <span ng-bind="fleet.fc.name"></span>
+              <span> - </span>
+              <span ng-bind="fleet.fleet_type | fleet_type"></span>
+            </button>
+          </div>
+        </div>
+        <div class="well" ng-show="fleets_array.length == 0">{{ _('There are no fleets now, or FCs are not using EFQ.') }}</div>
+      </div>
+
+
+      <div ng-show="view=='waitlist'">
+      </div>
+
+      <div ng-repeat="fleet in fleets" ng-show="$parent.view==fleet.fc.name">
+        {{! fleet }}
+      </div>
+
+      {% if character and character.is_fc %}
+      <div ng-show="view=='fc'">
+        <div class="panel panel-primary">
+          <div class="panel-heading">{{ _('New fleet') }}</div>
+          <div class="panel-body">
+            <form method='POST'>
+              <div class="form-group">
+                <select class='form-control' ng-model="new_fleet_form.fleet_type">
+                  <option value='10' selected>{{! types['10'] }}</option>
+                  <option value='20'>{{! types['20'] }}</option>
+                  <option value='40'>{{! types['40'] }}</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-default" ng-click="newFleet()">{{ _('Form') }}</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% end %}
+
+    </div>
+
+  </body>
+</html>

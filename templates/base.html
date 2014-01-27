@@ -74,9 +74,9 @@
 
     <script src="https://code.jquery.com/jquery.js"></script>
     <script src="{{ static_url('js/bootstrap.min.js') }}"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.9/angular.min.js"></script>
 
     <script>
+
     function getCookie(name) {
       var r = document.cookie.match("\\b" + name + "=([^;]*)\\b");
       return r ? r[1] : undefined;
@@ -97,29 +97,37 @@
 
     {% if character %}
     <script>
+
+    poll_actions = {};
+
+    poll_actions.reload = function (data) {
+      {% if reload_on_poll %}
+      setTimeout(document.location.reload, 1000);
+      {% else %}
+      setTimeout(polling, 1000);
+      {% end %}
+    }
+
     function polling() {
         $.getJSON('/poll')
         .done(function(data) {
-          if (data.action == 'reload') {
-            {% if reload_on_poll %}
-            document.location.reload();
-            {% else %}
-            setTimeout(polling, 500);
-            {% end %}
+          if (poll_actions[data.action]) {
+            poll_actions[data.action](data);
           }
-          {% block poll_handlers %}
-          {% end %}
         })
         .fail(function() {
           setTimeout(polling, 5000);
         })
     }
+
     $(polling);
+
     </script>
     {% end %}
 
     {% block addjs %}
     {% end %}
+
 
   </body>
 </html>
