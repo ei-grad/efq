@@ -427,7 +427,10 @@ class AngularHandler(BaseHandler):
         if native_str(self.get_secure_cookie('uuid')) != self.uuid:
             self.set_secure_cookie('uuid', self.uuid)
         self.set_cookie('ts', '%f' % time())
-        is_fc = self.character.is_fc
+        if self.character is not None:
+            is_fc = self.character.is_fc
+        else:
+            is_fc = False
         characters = dict((i.name, i.to_json(fit=is_fc))
                           for i in CHARACTERS.values())
         waitlist = [i.name for i in self.WAITLIST]
