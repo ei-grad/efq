@@ -22,6 +22,8 @@ from tornado.escape import native_str
 
 from toredis import Redis
 
+import ui
+
 
 logger = logging.getLogger(__name__)
 
@@ -1029,6 +1031,7 @@ if __name__ == "__main__":
         template_path='templates',
         static_path='static',
         debug=options.devel if not options.user else False,
+        ui_modules=ui,
         xsrf_cookies=True,
     )
 
