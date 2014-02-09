@@ -1,0 +1,137 @@
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+#
+# , 2014.
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-02-09 20:25+0400\n"
+"PO-Revision-Date: 2014-02-09 22:51+0400\n"
+"Last-Translator: \n"
+"Language-Team: American English <efq@raisa.su>\n"
+"Language: en_US\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Lokalize 1.5\n"
+
+#: templates/angular.html:272
+msgid "Home"
+msgstr "Начало"
+
+#: templates/angular.html:273
+msgid "EFQ"
+msgstr ""
+
+#: templates/angular.html:274
+msgid "Rules"
+msgstr "Правила"
+
+#: templates/angular.html:275
+msgid "Fits"
+msgstr "Фиты"
+
+#: templates/angular.html:276
+msgid "SRP"
+msgstr "Страхование"
+
+#: templates/angular.html:277
+msgid "Guides"
+msgstr "Справочная служба"
+
+#: templates/angular.html:278
+msgid "About us"
+msgstr "О канале"
+
+#: templates/angular.html:285
+msgid "Admin"
+msgstr "Администрирование\t"
+
+#: templates/angular.html:286
+msgid "Fit"
+msgstr "Фит"
+
+#: templates/angular.html:287
+msgid "Logout"
+msgstr "Выйти"
+
+#: templates/angular.html:294
+msgid "Authenticate"
+msgstr "Аутентифицироваться"
+
+#: templates/angular.html:317
+msgid "VG"
+msgstr ""
+
+#: templates/angular.html:321
+msgid "AS"
+msgstr ""
+
+#: templates/angular.html:325
+msgid "HQ"
+msgstr ""
+
+#: templates/angular.html:336
+msgid "You have to <a href=\"/login\">authenticate</a> to join a waitlist."
+msgstr ""
+"Необходимо <a href=\"/login\">аутентифицироваться</a> чтобы присоединиться к "
+"списку запаса."
+
+#: templates/angular.html:340
+msgid "Fleets"
+msgstr "Флоты"
+
+#: templates/angular.html:341
+msgid "Waitlist"
+msgstr "Список запаса"
+
+#: templates/angular.html:343
+msgid "FC"
+msgstr "ФК"
+
+#: templates/angular.html:362
+msgid "There are no fleets now, or FCs are not using EFQ."
+msgstr "Флотов сейчас нет, либо ФК не используют EFQ."
+
+#: templates/angular.html:383
+msgid "Other"
+msgstr "Другие"
+
+#: templates/angular.html:396
+msgid "Waitlist is empty."
+msgstr "Список запаса пуст."
+
+#: templates/angular.html:402
+msgid "FC:"
+msgstr "ФК:"
+
+#: templates/angular.html:403
+msgid "System:"
+msgstr "Система:"
+
+#: templates/angular.html:405
+msgid "Apply to this particular fleet"
+msgstr "Присоединиться к запасу этого флота"
+
+#: templates/angular.html:419
+msgid "New fleet"
+msgstr "Новый флот"
+
+#: templates/angular.html:429
+msgid "Form"
+msgstr "Сформировать"
+
+#: templates/angular.html:436
+msgid "Fleet"
+msgstr "Флот"
+
+#: templates/angular.html:440
+msgid "Disband"
+msgstr "Расформировать"
+
+#: templates/angular.html:445
+msgid "You are not FC in fleet where you are"
+msgstr "Вы не являетесь ФК этого флота."
+
