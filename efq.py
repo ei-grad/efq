@@ -1001,14 +1001,14 @@ if __name__ == "__main__":
 
     parse_command_line()
 
+    if options.devel:
+        HANDLERS.append((r'/devel', DevelHandler))
+
     if options.user:
         if options.devel:
             logger.warning('Auto-reloading with priveledge dropping is not '
                            'supported. Development mode disabled.')
             options.devel = False
-
-    if options.devel:
-        HANDLERS.append((r'/devel', DevelHandler))
 
     #logging.getLogger('tornado.general').setLevel(logging.INFO)
 
