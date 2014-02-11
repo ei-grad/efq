@@ -263,6 +263,12 @@ class Fleet(object):
             self.queue.remove(character)
         character.fleet = None
 
+    def invite(self, character):
+        if character in self.queue:
+            self.queue.remove(character)
+        self.members.append(character)
+        character.waitlist = set()
+
     def transfer(self, to):
         if to not in self.fcs:
             raise Exception('%s is not a FC of this fleet!' % to.name)
@@ -708,9 +714,11 @@ class TypeHandler(BaseHandler):
                     'fleet_type': fleet.fleet_type})
 
 
-class DismissHandler(BaseHandler):
+class DisbandHandler(BaseHandler):
     fc_required = True
-    def post(self, fc):
+    def post(self):
+
+        fc = self.character.fleet.fc
 
         fleet = FLEETS[fc]
 
@@ -718,12 +726,10 @@ class DismissHandler(BaseHandler):
 
         for i in chain(fleet.fcs, fleet.queue, fleet.members):
             i.fleet = None
-            i.add_message('Флот был распущен.')
+            self.event({'action': 'update_character', 'charname': i.name, 'fleet': None})
+            i.add_message("Fleet has been disbanded.")
 
-        for i in self.ONLINE:
-            i.event({'action': 'remove_fleet', 'fleet': fleet.fc.name})
-
-        self.redirect('/')
+        self.event({'action': 'remove_fleet', 'fleet': fleet.fc.name})
 
 
 class TransferHandler(BaseHandler):
@@ -743,8 +749,8 @@ class InviteHandler(BaseHandler):
     @gen.coroutine
     def post(self):
         character = yield get_character(self.get_argument('character'))
-        character.add_message('Вы были приняты во флот', 'success')
-        self.character.fleet.dequeue(character)
+        self.character.fleet.invite(character)
+        character.add_message('You were invited to the fleet.', 'success')
         self.redirect('/fc')
 
 
@@ -763,7 +769,7 @@ class PollHandler(JsonMixin, BaseHandler):
     login_required = False
 
     @web.asynchronous
-    def get(self):
+    def post(self):
 
         self.ts = float(self.get_cookie('ts')) if self.get_cookie('ts') is not None else time()
         self.timeout = None
@@ -890,43 +896,15 @@ class FitHandler(BaseHandler):
     @gen.coroutine
     def post(self):
 
-        ship = self.get_argument('ship')
-        lines = self.get_argument('lines')
-
-        if 'fitting:' in lines:
-
-            fit = DNA_RE.search(lines)
-
-            if fit is not None:
-                fit = fit.group(1)
-
+        fit = DNA_RE.search(self.get_argument('dna'))
+        if fit is not None:
+            fit = fit.group(1)
         else:
-
-            if ship not in TYPES_BY_NAME or \
-               TYPES_BY_NAME[ship]['slot'] != 'ship':
-                self.add_message('Нет такого корабля', 'danger')
-                self.render('fit.html')
-
-            modules = {}
-
-            for line in lines:
-                m = MODULE_RE.search(line)
-                if m is not None:
-                    if m.group('name') in TYPES_BY_NAME:
-                        if m.group('name') not in modules:
-                            modules[m.group('name')] = 0
-                        q = 0
-                        if m.group('q') is not None:
-                            q = int(m.group('q'))
-                        modules[m.group('name')] += q
-
-            fit = '%d:%s::' % (
-                TYPES_BY_NAME[ship]['id'],
-                ':'.join(
-                    '%d;%d' % (TYPES_BY_NAME[name]['id'], int(q))
-                    for name, q in modules.items()
-                )
-            )
+            self.character.add_message(self.locale.translate(
+                "DNA substring was not found in your input!"
+            ))
+            self.get()
+            raise gen.Return(None)
 
         self.character.fit = fit
 
@@ -968,7 +946,7 @@ HANDLERS = [
 
     (r"/fleets", FleetsHandler),
     (r"/decline", DeclineHandler),
-    (r"/dismiss", DismissHandler),
+    (r"/disband", DisbandHandler),
     (r"/invite", InviteHandler),
     (r"/join", JoinHandler),
     (r"/leave", LeaveHandler),

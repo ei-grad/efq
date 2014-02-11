@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html ng-app="efqApp">
 
   <head>
     <title>{{ title }}</title>
@@ -17,6 +17,10 @@
       <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
       <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
     <![endif]-->
+
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <script src="{{ static_url('js/bootstrap.min.js') }}"></script>
+
   </head>
 
   <body>
@@ -30,7 +34,8 @@
       </div>
       <div class="navbar-collapse collapse">
         <ul class="nav navbar-nav">
-          <li class="active"><a href="/">{{ _('Fleets') }}</a></li>
+          <li><a href="http://raisa.su/">{{ _('Home') }}</a></li>
+          <li class="active"><a href="/">{{ _('EFQ') }}</a></li>
           <li><a href="http://raisa.su/rules">{{ _('Rules') }}</a></li>
           <li><a href="http://raisa.su/fits">{{ _('Fits') }}</a></li>
           <li><a href="http://raisa.su/srp">{{ _('SRP') }}</a></li>
@@ -61,73 +66,33 @@
 
     <div class="container">
 
-      {% for msgid, message, cls in messages %}
-      <div id="{{ msgid }}" class="alert alert-{{ cls }}">
-          <button type="button" class="close" onclick='javascript:readMessage("{{ msgid }}")'>&times;</button>
-          <p>{{ message }}</p>
+      {% for msg in messages %}
+      <div class="alert alert-{{ msg['cls'] }}">
+          <p>{{ msg['content'] }}</p>
       </div>
       {% end %}
 
       {% block content %}
       {% end %}
+
+      <footer>
+        <div class="row">
+          <div class="col-lg-12">
+            <hr/>
+            <ul class="list-unstyled">
+              <li class="pull-right"><a href="#top">{{ _("Back to top") }}</a></li>
+              <li class="pull-right" ng-show="locale!='ru_RU'"><a href="javascript:document.cookie='locale=ru_RU';document.location.reload()">Русский&nbsp;<img src="{{ static_url('icons/ru_RU.png') }}"></a></li>
+              <li class="pull-right" ng-show="locale!='en_US'"><a href="javascript:document.cookie='locale=en_US';document.location.reload()">English&nbsp;<img src="{{ static_url('icons/en_US.png') }}"></a></li>
+              <li><a href="https://github.com/raisa-shield/efq/">GitHub</a></li>
+            </ul>
+            <p>{% raw _('Made by <a href="http://eve.ei-grad.ru" rel="nofollow">Andrew Grigorev</a>. Contact him at <a href="mailto:andrew@ei-grad.ru">andrew@ei-grad.ru</a>.') %}</p>
+            <p>{% raw _('Code released under the <a href="https://github.com/raisa-shield/efq/LICENSE">MIT License</a>.') %}</p>
+            <p>{% raw _('Based on <a href="http://getbootstrap.com" rel="nofollow">Bootstrap</a> and <a href="http://bootswatch.com/cyborg/">Cyborg</a> theme. Icons from <a href="http://fortawesome.github.io/Font-Awesome/" rel="nofollow">Font Awesome</a>. Looks best with Eve Sans Neue font.') %}</p>
+          </div>
+        </div>
+      </footer>
+
     </div>
-
-    <script src="https://code.jquery.com/jquery.js"></script>
-    <script src="{{ static_url('js/bootstrap.min.js') }}"></script>
-
-    <script>
-
-    function getCookie(name) {
-      var r = document.cookie.match("\\b" + name + "=([^;]*)\\b");
-      return r ? r[1] : undefined;
-    }
-    function deleteCookie(name) {
-      document.cookie = name+'="";-1; path=/';
-    }
-    function readMessage(msg) {
-      $.post('/read', {msg: msg});
-      $('#' + msg).remove();
-    }
-    function logout() {
-      deleteCookie("character");
-      document.location = "/";
-    }
-    $.ajaxSetup({headers: {'X-XSRFToken': getCookie("_xsrf")} });
-    </script>
-
-    {% if character %}
-    <script>
-
-    poll_actions = {};
-
-    poll_actions.reload = function (data) {
-      {% if reload_on_poll %}
-      setTimeout(document.location.reload, 1000);
-      {% else %}
-      setTimeout(polling, 1000);
-      {% end %}
-    }
-
-    function polling() {
-        $.getJSON('/poll')
-        .done(function(data) {
-          if (poll_actions[data.action]) {
-            poll_actions[data.action](data);
-          }
-        })
-        .fail(function() {
-          setTimeout(polling, 5000);
-        })
-    }
-
-    $(polling);
-
-    </script>
-    {% end %}
-
-    {% block addjs %}
-    {% end %}
-
 
   </body>
 </html>

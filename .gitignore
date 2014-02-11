@@ -4,3 +4,5 @@
 .cookie_secret
 .coverage
 htmlcov
+*.egg-info
+dist

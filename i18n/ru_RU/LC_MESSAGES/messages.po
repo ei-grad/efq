@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2014-02-09 20:25+0400\n"
-"PO-Revision-Date: 2014-02-09 22:51+0400\n"
+"PO-Revision-Date: 2014-02-10 01:09+0400\n"
 "Last-Translator: \n"
 "Language-Team: American English <efq@raisa.su>\n"
 "Language: en_US\n"
@@ -19,7 +19,7 @@ msgstr ""
 
 #: templates/angular.html:272
 msgid "Home"
-msgstr "Начало"
+msgstr "Главная"
 
 #: templates/angular.html:273
 msgid "EFQ"
@@ -85,7 +85,7 @@ msgstr "Флоты"
 
 #: templates/angular.html:341
 msgid "Waitlist"
-msgstr "Список запаса"
+msgstr "Запас"
 
 #: templates/angular.html:343
 msgid "FC"
@@ -134,4 +134,5 @@ msgstr "Расформировать"
 #: templates/angular.html:445
 msgid "You are not FC in fleet where you are"
 msgstr "Вы не являетесь ФК этого флота."
+
 
