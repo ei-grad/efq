@@ -101,6 +101,9 @@
 
         remove_fleet: function(data) {
           delete $scope.fleets[data.fleet];
+          if ($scope.view == data.fleet) {
+            $scope.view = 'fleets';
+          }
         },
 
         update_character: function(data) {
