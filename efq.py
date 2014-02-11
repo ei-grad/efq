@@ -215,7 +215,7 @@ class CharacterInOtherFleet(Exception):
 
 class Fleet(object):
 
-    def __init__(self, fc, fleet_type=None):
+    def __init__(self, fc, fleet_type="10"):
 
         # fc is the fleet id
         self._fc = fc
@@ -224,7 +224,7 @@ class Fleet(object):
 
         fc.fleet = self
 
-        self.fleet_type = "10"
+        self.fleet_type = fleet_type
         self.system = None
         self.systemid = None
         self.queue = []
