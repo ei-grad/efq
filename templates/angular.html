@@ -67,35 +67,92 @@
       }
     });
 
-    function array(obj) {
-        var ret = [];
-        angular.forEach(obj, function(item) {
-          ret.push(item);
-        });
-       return ret;
-      };
-
-    efq.filter('array', function() {
-      return array;
-    });
-
-    var poll_actions = {};
-
-    poll_actions.reload = function (data) {
-      setTimeout(function(){document.location.reload()}, 1000);
-    }
-
     efq.controller('EFQCtrl', function($scope) {
 
       $scope.types = types;
+
       if (window.CCPEVE != undefined) {
         $scope.CCPEVE = CCPEVE;
-      }
+      };
+
+      var poll_actions = {
+
+        reload: function (data) {
+          setTimeout(function(){document.location.reload()}, 1000);
+        },
+
+        user_waitlist_changed: function(data) {
+          $scope.characters[data.charname].waitlist = data.waitlist;
+          var i = $scope.waitlist.indexOf(data.charname);
+          if (data.waitlist.length == 0) {
+            if (i != -1) {
+              $scope.waitlist.splice(i, 1);
+            }
+          } else {
+            if (i == -1) {
+              $scope.waitlist.push(data.charname);
+            }
+          }
+        },
+
+        new_fleet: function(data) {
+          $scope.fleets[data.fleet.fc] = data.fleet;
+        },
+
+        remove_fleet: function(data) {
+          delete $scope.fleets[data.fleet];
+        },
+
+        update_character: function(data) {
+          var character = $scope.characters[data.charname];
+          ['fleet', 'waitlist', 'fit', 'ship'].forEach(function(key) {
+            if (data[key] !== undefined) {
+              character[key] = data[key];
+            }
+          })
+        },
+
+        update_fleet: function(data) {
+          var fleet = $scope.fleets[data.fc.name];
+          ['fleet', 'waitlist', 'fit', 'ship'].forEach(function(key) {
+            if (data[key] !== undefined) {
+              character[key] = data[key];
+            }
+          })
+        },
+
+        {% if character %}
+        <!-- Character related stuff -->
+
+        add_message: function(data) {
+          $scope.messages.push(data.message);
+        },
+
+        read_message: function(data) {
+          for (var i=0; i<$scope.messages.length; i++) {
+            if ($scope.messages[i].uuid == data.uuid) {
+              $scope.messages.splice(i, 1);
+              break;
+            }
+          }
+        },
+
+        {% if character.is_fc %}
+        <!-- FC-only stuff -->
+
+        mail_auth_request: function (data) {
+          var msg = "{{ _('Your auth link is:') + ' http://' + request.host + '/login/token/' }}" + data.token + ".";
+          CCPEVE.sendMail(data.character.charid, "{{ _('EFQ Authentication') }}", msg);
+        },
+
+        {% end %}
+        {% end %}
+      };
 
       function polling() {
           $.post('/poll')
           .done(function(events) {
-            setTimeout(polling, 100);
+            setTimeout(polling, 300);
             events.forEach(function(data) {
               if (poll_actions[data.action]) {
                 console.log('Handling ' + data.action + ' event:', data);
@@ -146,11 +203,6 @@
       {% if character.is_fc %} 
       <!-- FC-only stuff -->
 
-      poll_actions.mail_auth_request = function (data) {
-        var msg = "{{ _('Your auth link is:') + ' http://' + request.host + '/login/token/' }}" + data.token + ".";
-        CCPEVE.sendMail(data.character.charid, "{{ _('EFQ Authentication') }}", msg);
-      }
-
       $scope.new_fleet_form = {fleet_type: '10'};
 
       $scope.newFleet = function() {
@@ -181,36 +233,6 @@
         $.post('/waitlist', {fleet_type: fleet_type});
       }
 
-      poll_actions.add_message = function(data) {
-        $scope.messages.push(data.message);
-      }
-
-      poll_actions.read_message = function(data) {
-        for (var i=0; i<$scope.messages.length; i++) {
-          if ($scope.messages[i].uuid == data.uuid) {
-            $scope.messages.splice(i, 1);
-            break;
-          }
-        }
-      }
-
-      poll_actions.update_character = function(data) {
-        var character = $scope.characters[data.charname];
-        ['fleet', 'waitlist', 'fit', 'ship'].forEach(function(key) {
-          if (data[key] !== undefined) {
-            character[key] = data[key];
-          }
-        })
-      }
-      
-      poll_actions.update_fleet = function(data) {
-        var fleet = $scope.fleets[data.fc.name];
-        ['fleet', 'waitlist', 'fit', 'ship'].forEach(function(key) {
-          if (data[key] !== undefined) {
-            character[key] = data[key];
-          }
-        })
-      }
 
       $scope.readMessage = function(msg) {
         $.post('/message', {uuid: msg.uuid});
@@ -238,24 +260,6 @@
 
       <!-- Character related stuff -->
       {% end %}
-
-      poll_actions.user_waitlist_changed = function(data) {
-        $scope.characters[data.charname].waitlist = data.waitlist;
-        var i = $scope.waitlist.indexOf(data.charname);
-        if (data.waitlist.length == 0) {
-          if (i != -1) {
-            $scope.waitlist.splice(i, 1);
-          }
-        } else {
-          if (i == -1) {
-            $scope.waitlist.push(data.charname);
-          }
-        }
-      }
-
-      poll_actions.new_fleet = function(data) {
-        $scope.fleets[data.fleet.fc] = data.fleet;
-      }
 
     });
     </script>
