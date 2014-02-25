@@ -309,7 +309,7 @@ class BaseHandler(web.RequestHandler):
     def prepare(self):
 
         if self.request.remote_ip in BANNED_IPS:
-            self.send_error(500)
+            self.send_error(403)
             raise gen.Return(None)
 
         self.set_cookie("_xsrf", self.xsrf_token, expires_days=30)
@@ -858,8 +858,12 @@ class AdminHandler(TemplateMixin, LoginSuccessMixin, BaseHandler):
         action = self.get_argument('action')
         if action == 'fake_character':
             return self.login_success(self.get_argument('charname'))
+        if action == 'ban_ip':
+            BANNED_IPS.add(self.get_argument('address'))
+            return self.get()
         else:
             self.send_error(400)
+
 
 class DevelHandler(AdminHandler):
     login_required = False
