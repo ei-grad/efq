@@ -87,18 +87,23 @@ def get_character(name):
         url = "https://api.eveonline.com/eve/CharacterID.xml.aspx"
         url = '?'.join([url, urlencode({'names': name})])
 
-        try:
-            response = yield http.fetch(url)
-            content = response.body.decode('utf-8')
+        character.charid = yield redis.get('charid:%s' % name)
+        character.charid = native_str(character.charid)
 
-            m = re.search(r'characterID="(\d+)"', content)
-            if m is not None:
-                character.charid = m.group(1)
-            else:
-                raise Exception("Invalid response!")
-        except:
-            logger.error("Request %s failed:",
-                         url, exc_info=True)
+        if character.charid is None:
+            try:
+                response = yield http.fetch(url)
+                content = response.body.decode('utf-8')
+
+                m = re.search(r'characterID="(\d+)"', content)
+                if m is not None:
+                    character.charid = m.group(1)
+                    redis.set('charid:%s' % name, character.charid)
+                else:
+                    raise Exception("Invalid response!")
+            except:
+                logger.error("Request %s failed:",
+                             url, exc_info=True)
 
         if not character.charid or character.charid == "0":
             del CHARACTERS[name]
