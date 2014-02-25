@@ -37,10 +37,13 @@
     {% if character and character.is_fc %}
     efq.filter('character', function($sce) {
       return function(data) {
-        return $sce.trustAsHtml(
-          '<a class="igb" href="javascript:CCPEVE.showInfo(1377, ' + data.charid + ')">' + data.name.replace(" ", "&nbsp;") + '</a> ' +
-          '- <a class="igb" href="javascript:CCPEVE.showFitting(\'' + data.fit + '\')">' + data.ship + '</a>'
-        );
+        var code = '<a class="igb" href="javascript:CCPEVE.showInfo(1377, ' + data.charid + ')">' + data.name.replace(" ", "&nbsp;") + '</a> ';
+        if (data.fit != null) {
+          code = code + '- <a class="igb" href="javascript:CCPEVE.showFitting(\'' + data.fit + '\')">' + data.ship + '</a>';
+        } else {
+        code = code + '- {{ _("no fit") }}';
+        }
+        return $sce.trustAsHtml(code);
       }
     })
     {% else %}

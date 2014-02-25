@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
 {% block content %}
-<p>Текущий фит: {% module Fit(character) %}</p>
+<p>{{ _('Current fit') }}: {% module Fit(character) %}</p>
 
 <form method="POST">
-  <legend>Загрузить новый фит</legend>
+  <legend>{{ _('Upload a new fit') }}</legend>
   {% module xsrf_form_html() %}
   <div class="form-group">
-    <label for="textArea" class="col-lg-2 control-label">DNA</label>
+    <label for="textArea" class="col-lg-2 control-label">{{ _('DNA (in form "fitting:<DNA>")') }}</label>
     <div class="col-lg-10">
       <textarea class="form-control" rows="5" id="textArea" name="dna"
         placeholder="Modules">{{ fit }}</textarea>
@@ -18,8 +18,10 @@
   </div>
   <div class="form-group">
     <div class="col-lg-10 col-lg-offset-2">
-      <button type="submit" class="btn btn-primary">Загрузить</button> 
+      <button type="submit" class="btn btn-primary">{{ _('Upload') }}</button> 
     </div>
   </div>
 </form>
+
+<button type="submit" class="btn btn-danger" onclick="javascript:$.ajax({url: '/fit', method: 'DELETE'})">{{ _('Delete fit') }}</button>
 {% end %}

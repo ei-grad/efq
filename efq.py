@@ -926,6 +926,10 @@ class FitHandler(BaseHandler):
 
         self.redirect('/')
 
+    def delete(self):
+        redis.delete('efq:fitting:%s' % self.character.name)
+        self.get()
+
 
 class MessageHandler(BaseHandler):
     def post(self):
