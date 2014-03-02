@@ -6,6 +6,10 @@
 <div class="alert alert-danger">{{ _("Can't find the key! Try to wait a minute.") }}</div>
 {% end %}
 
+{% if mail_auth == "asked" %}
+<div class="alert alert-success">{{ _("Request to send an ingame e-mail with authentication link has been sent to %s. Wait for email and follow the link contained in it. If you will not receive that e-mail in a couple of minutes, then you can contact this FC on our TeamSpeak server or try to request authentication link again.") % mail_auth_fc }}</div>
+{% end %}
+
 <div class="panel panel-default">
   <div class="panel-heading"><h3 class="panel-title">{{ _('Authentication via chat channel (using eve-live.com)') }}</h3></div>
   <div class="panel-body">

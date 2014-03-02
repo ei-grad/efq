@@ -93,7 +93,7 @@
             <ul class="list-unstyled">
               <li class="pull-right"><a href="#top">{{ _("Back to top") }}</a></li>
               {% if locale.code != 'ru_RU' %}
-              <li class="pull-right"><a href="javascript:document.cookie='locale=ru_RU';document.location.reload()">Русский&nbsp;<img src="{{ static_url('icons/ru_RU.png') }}"></a></li>
+              <li class="pull-right"><a href="javascript:document.cookie='locale=ru_RU';document.location.reload()">{{ u'\u0420\u0443\u0441\u0441\u043a\u0438\u0439' }}&nbsp;<img src="{{ static_url('icons/ru_RU.png') }}"></a></li>
               {% end %}
               {% if locale.code != 'en_US' %}
               <li class="pull-right"><a href="javascript:document.cookie='locale=en_US';document.location.reload()">English&nbsp;<img src="{{ static_url('icons/en_US.png') }}"></a></li>

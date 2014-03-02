@@ -1,7 +1,7 @@
 {% if character.fit %}
 <a href='javascript:CCPEVE.showFitting("{{ character.fit }}")'>{{ character.ship }}</a>
 {% else %}
-фит не загружен
+{{ _("fit is not loaded") }}
 {% end %}
 {% if edit %}
 <a class="btn btn-xs btn-default" href="/fit"><i class="fa fa-edit"></i></a>

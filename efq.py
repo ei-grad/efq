@@ -549,7 +549,7 @@ class ChannelAuthKeyMixin(object):
 
 class LoginHandler(ChannelAuthKeyMixin, TemplateMixin, BaseLoginHandler):
     template = 'login.html'
-    optional_get_params = ['mail_auth', 'channel_auth']
+    optional_get_params = ['mail_auth', 'channel_auth', 'mail_auth_fc']
 
     def render(self, *args, **kwargs):
         kwargs['auth_channel'] = self.auth_channel
@@ -593,6 +593,19 @@ class ChannelAuthHandler(ChannelAuthKeyMixin, BaseLoginHandler):
             self.redirect("/login?channel_auth=failed")
 
 
+_ = lambda x: x
+
+MAIL_AUTH_MSG = _('''Your auth link is:
+
+http://{host}/login/token/{token}
+
+Open it in browser in which you want to authenticate.
+This link works 10 minutes since the moment when you clicked "Ask" button.
+''')
+
+MAIL_AUTH_SUBJ = _('EFQ Authentication')
+
+
 class MailAuthAskHandler(BaseLoginHandler):
     @gen.coroutine
     def post(self):
@@ -619,12 +632,16 @@ class MailAuthAskHandler(BaseLoginHandler):
             fc = random.choice(online_fcs)
             fc.event({
                 'action': 'mail_auth_request',
-                'token': token,
                 'character': character.to_json(),
+                'message': self.locale.translate(MAIL_AUTH_MSG).format(
+                    host=self.request.host,
+                    token=token,
+                ),
+                'subject': self.locale.translate(MAIL_AUTH_SUBJ),
             })
             self.redirect('/login?' + urlencode({
                 'mail_auth': 'asked',
-                'fc': fc.name
+                'mail_auth_fc': fc.name,
             }))
         else:
             self.redirect('/login?mail_auth=no_fc_online')

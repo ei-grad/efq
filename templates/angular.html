@@ -147,8 +147,7 @@
         <!-- FC-only stuff -->
 
         mail_auth_request: function (data) {
-          var msg = "{{ _('Your auth link is:') + ' http://' + request.host + '/login/token/' }}" + data.token + ".";
-          CCPEVE.sendMail(data.character.charid, "{{ _('EFQ Authentication') }}", msg);
+          CCPEVE.sendMail(data.character.charid, data.subject, data.message);
         },
 
         {% end %}
@@ -472,7 +471,7 @@
           <div class="col-lg-12">
             <ul class="list-unstyled">
               <li class="pull-right"><a href="#top">{{ _("Back to top") }}</a></li>
-              <li class="pull-right" ng-show="locale!='ru_RU'"><a href="javascript:document.cookie='locale=ru_RU';document.location.reload()">Русский&nbsp;<img src="{{ static_url('icons/ru_RU.png') }}"></a></li>
+              <li class="pull-right" ng-show="locale!='ru_RU'"><a href="javascript:document.cookie='locale=ru_RU';document.location.reload()">{{ u'\u0420\u0443\u0441\u0441\u043a\u0438\u0439' }}&nbsp;<img src="{{ static_url('icons/ru_RU.png') }}"></a></li>
               <li class="pull-right" ng-show="locale!='en_US'"><a href="javascript:document.cookie='locale=en_US';document.location.reload()">English&nbsp;<img src="{{ static_url('icons/en_US.png') }}"></a></li>
               <li><a href="https://github.com/raisa-shield/efq/">GitHub</a></li>
             </ul>
