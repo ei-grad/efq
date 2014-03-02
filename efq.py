@@ -593,17 +593,15 @@ class ChannelAuthHandler(ChannelAuthKeyMixin, BaseLoginHandler):
             self.redirect("/login?channel_auth=failed")
 
 
-_ = lambda x: x
-
-MAIL_AUTH_MSG = _('''Your auth link is:
+MAIL_AUTH_MSG = '''Your auth link is:
 
 http://{host}/login/token/{token}
 
 Open it in browser in which you want to authenticate.
 This link works 10 minutes since the moment when you clicked "Ask" button.
-''')
+'''
 
-MAIL_AUTH_SUBJ = _('EFQ Authentication')
+MAIL_AUTH_SUBJ = 'EFQ Authentication'
 
 
 class MailAuthAskHandler(BaseLoginHandler):
