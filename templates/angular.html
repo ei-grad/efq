@@ -48,8 +48,8 @@
     })
     {% else %}
     efq.filter('character', function($sce) {
-      return function(data) {
-        return $sce.trustAsHtml('<a class="igb" href="javascript:CCPEVE.showInfo(1377, ' + data.charid + ')">' + data.name.replace(" ", "&nbsp;") + '</a>');
+      return function(character) {
+        return $sce.trustAsHtml('<a class="igb" href="javascript:CCPEVE.showInfo(1377, ' + character.charid + ')">' + character.name.replace(" ", "&nbsp;") + '</a>' + ' - ' + character.ship);
       }
     })
     {% end %}
@@ -222,6 +222,18 @@
         return $scope.fleets[character.fleet].members.indexOf(character.name) != -1;
       }
 
+      $scope.shipIs = function (ships) {
+        return function(charname) {
+          return ships.indexOf($scope.characters[charname].ship) != -1;
+        }
+      }
+
+      $scope.shipIsNot = function (ships) {
+        return function(charname) {
+          return ships.indexOf($scope.characters[charname].ship) == -1;
+        }
+      }
+
       $scope.setView = function(view) {
         $scope.view = view;
         document.cookie = 'view=' + escape(view);
@@ -276,18 +288,6 @@
 
       $scope.readMessage = function(msg) {
         $.post('/message', {uuid: msg.uuid});
-      }
-
-      $scope.shipIs = function (ships) {
-        return function(charname) {
-          return ships.indexOf($scope.characters[charname].ship) != -1;
-        }
-      }
-
-      $scope.shipIsNot = function (ships) {
-        return function(charname) {
-          return ships.indexOf($scope.characters[charname].ship) == -1;
-        }
       }
 
       $scope.joinFleet = function (fleet) {
@@ -437,10 +437,10 @@
       <div ng-show="view=='waitlist'">
 
         <div class="panel panel-default">
-          <div class="panel-heading">{{ _("Logistics:") }}</div>
+          <div class="panel-heading">{{ _("Logistics") }}:</div>
           <ul class="list-group">
             <li class="list-group-item" ng-repeat="i in waitlist | filter:shipIs(['Basilisc', 'Scimitar'])">
-              <span ng-bind-html="characters[i] | character"></span> <span>({{! character.waitlist.join(', ') }})</span>
+              <span ng-bind-html="characters[i] | character"></span> <span>({{! characters[i].waitlist.join(', ') }})</span>
               {% if character is not None and character.is_fc %}
               <div class="pull-right" ng-show="character.fleet">
                 <button class="btn btn-xs btn-primary" ng-click='inviteToFleet(i)' ><i class="fa fa-sign-in"></i></button>
@@ -452,10 +452,10 @@
         </div>
 
         <div class="panel panel-default">
-          <div class="panel-heading">{{ _("Vindicators:") }}</div>
+          <div class="panel-heading">{{ _("Vindicators") }}:</div>
           <ul class="list-group">
             <li class="list-group-item" ng-repeat="i in waitlist | filter:shipIs(['Vindicator'])">
-              <span ng-bind-html="characters[i] | character"></span> <span>({{! character.waitlist.join(', ') }})</span>
+              <span ng-bind-html="characters[i] | character"></span> <span>({{! characters[i].waitlist.join(', ') }})</span>
               {% if character is not None and character.is_fc %}
               <div class="pull-right" ng-show="character.fleet">
                 <button class="btn btn-xs btn-primary" ng-click='inviteToFleet(i)' ><i class="fa fa-sign-in"></i></button>
@@ -467,10 +467,10 @@
         </div>
 
         <div class="panel panel-default">
-          <div class="panel-heading">{{ _("Machariels and Nightmares:") }}</div>
+          <div class="panel-heading">{{ _("Machariels and Nightmares") }}:</div>
           <ul class="list-group">
             <li class="list-group-item" ng-repeat="i in waitlist | filter:shipIs(['Machariel', 'Nightmare'])">
-              <span ng-bind-html="characters[i] | character"></span> <span>({{! character.waitlist.join(', ') }})</span>
+              <span ng-bind-html="characters[i] | character"></span> <span>({{! characters[i].waitlist.join(', ') }})</span>
               {% if character is not None and character.is_fc %}
               <div class="pull-right" ng-show="character.fleet">
                 <button class="btn btn-xs btn-primary" ng-click='inviteToFleet(i)' ><i class="fa fa-sign-in"></i></button>
@@ -485,7 +485,7 @@
           <div class="panel-heading">{{ _('Other') }}:</div>
           <ul class="list-group">
             <li class="list-group-item" ng-repeat="i in waitlist | filter:shipIsNot(['Vindicator', 'Machariel', 'Nightmare', 'Basilisc', 'Scimitar'])">
-              <span ng-bind-html="characters[i] | character"></span> <span>({{! character.waitlist.join(', ') }})</span>
+              <span ng-bind-html="characters[i] | character"></span> <span>({{! characters[i].waitlist.join(', ') }})</span>
               {% if character is not None and character.is_fc %}
               <div class="pull-right" ng-show="character.fleet">
                 <button class="btn btn-xs btn-primary" ng-click='inviteToFleet(i)' ><i class="fa fa-sign-in"></i></button>
