@@ -379,38 +379,67 @@
       </div>
 
       <div ng-show="view=='waitlist'">
-        <div ng-show="!isEmpty(waitlist)">
-          <!--<div ng-repeat="ship in ['Vindicator', 'Machariel', 'Nightmare', 'Basilisc', 'Scimitar']">-->
-            <div class="panel panel-default">
-              <!--<div class="panel-heading">{{! ship }}:</div>-->
-              <ul class="list-group">
-                <!--<li class="list-group-item" ng-repeat="i in waitlist | filter:shipIs([ship])">-->
-                <li class="list-group-item" ng-repeat="i in waitlist">
-                  <span ng-bind-html="characters[i] | character"></span>
-                  <div class="pull-right">
-                    <button class="btn btn-xs btn-primary" ng-click='fleetInvite(i)' ><i class="fa fa-sign-in"></i></button>
-                    <button class="btn btn-xs btn-danger" ng-click='fleetDecline(i)' ><i class="fa fa-wheelchair"></i></button>
-                  </div>
-                </li>
-              </ul>
-            </div>
-          <!--</div>-->
-          <!--<div class="panel panel-default">
-            <div class="panel-heading">{{ _('Other') }}:</div>
-            <ul class="list-group">
-              <li class="list-group-item" ng-repeat="i in waitlist | filter:shipIsNot(['Vindicator', 'Machariel', 'Nightmare', 'Basilisc', 'Scimitar'])">
-                <span ng-bind-html="characters[i] | character"></span>
-                <div class="pull-right">
-                  <button class="btn btn-xs btn-success" ng-click='fleetInvite(i)' ><i class="fa fa-check"></i></button>
-                  <button class="btn btn-xs btn-danger" ng-click='fleetDecline(i)' ><i class="fa fa-wheelchair"></i></button>
-                </div>
-              </li>
-            </ul>
-          </div>-->
+
+        <div class="panel panel-default">
+          <div class="panel-heading">{{ _("Logistics:") }}</div>
+          <ul class="list-group">
+            <li class="list-group-item" ng-repeat="i in waitlist | filter:shipIs(['Basilisc', 'Scimitar'])">
+              <span ng-bind-html="characters[i] | character"></span> <span>({{! character.waitlist.join(', ') }})</span>
+              {% if character is not None and character.is_fc %}
+              <div class="pull-right" ng-show="character.fleet">
+                <button class="btn btn-xs btn-primary" ng-click='inviteToFleet(i)' ><i class="fa fa-sign-in"></i></button>
+                <button class="btn btn-xs btn-danger" ng-click='kickFromWaitlist(i)'><i class="fa fa-wheelchair"></i></button>
+              </div>
+              {% end %}
+            </li>
+          </ul>
         </div>
-        <div ng-show="isEmpty(waitlist)" class="well">
-          {{ _("Waitlist is empty.") }}
+
+        <div class="panel panel-default">
+          <div class="panel-heading">{{ _("Vindicators:") }}</div>
+          <ul class="list-group">
+            <li class="list-group-item" ng-repeat="i in waitlist | filter:shipIs(['Vindicator'])">
+              <span ng-bind-html="characters[i] | character"></span> <span>({{! character.waitlist.join(', ') }})</span>
+              {% if character is not None and character.is_fc %}
+              <div class="pull-right" ng-show="character.fleet">
+                <button class="btn btn-xs btn-primary" ng-click='inviteToFleet(i)' ><i class="fa fa-sign-in"></i></button>
+                <button class="btn btn-xs btn-danger" ng-click='kickFromWaitlist(i)'><i class="fa fa-wheelchair"></i></button>
+              </div>
+              {% end %}
+            </li>
+          </ul>
         </div>
+
+        <div class="panel panel-default">
+          <div class="panel-heading">{{ _("Machariels and Nightmares:") }}</div>
+          <ul class="list-group">
+            <li class="list-group-item" ng-repeat="i in waitlist | filter:shipIs(['Machariel', 'Nightmare'])">
+              <span ng-bind-html="characters[i] | character"></span> <span>({{! character.waitlist.join(', ') }})</span>
+              {% if character is not None and character.is_fc %}
+              <div class="pull-right" ng-show="character.fleet">
+                <button class="btn btn-xs btn-primary" ng-click='inviteToFleet(i)' ><i class="fa fa-sign-in"></i></button>
+                <button class="btn btn-xs btn-danger" ng-click='kickFromWaitlist(i)'><i class="fa fa-wheelchair"></i></button>
+              </div>
+              {% end %}
+            </li>
+          </ul>
+        </div>
+
+        <div class="panel panel-default">
+          <div class="panel-heading">{{ _('Other') }}:</div>
+          <ul class="list-group">
+            <li class="list-group-item" ng-repeat="i in waitlist | filter:shipIsNot(['Vindicator', 'Machariel', 'Nightmare', 'Basilisc', 'Scimitar'])">
+              <span ng-bind-html="characters[i] | character"></span> <span>({{! character.waitlist.join(', ') }})</span>
+              {% if character is not None and character.is_fc %}
+              <div class="pull-right" ng-show="character.fleet">
+                <button class="btn btn-xs btn-primary" ng-click='inviteToFleet(i)' ><i class="fa fa-sign-in"></i></button>
+                <button class="btn btn-xs btn-danger" ng-click='kickFromWaitlist(i)'><i class="fa fa-wheelchair"></i></button>
+              </div>
+              {% end %}
+            </li>
+          </ul>
+        </div>
+
       </div>
 
       <div ng-repeat="fleet in fleets" ng-show="$parent.view==fleet.fc">
