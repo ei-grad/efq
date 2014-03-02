@@ -796,7 +796,7 @@ class PollHandler(JsonMixin, BaseHandler):
                     self.ONLINE.add(self.character)
                 self.character.callbacks.append(self.event)
         else:
-            self.GUEST_CALLBACKS.append(self.event)
+            self.GUEST_CALLBACKS.add(self.event)
 
     def filter_events(self, events):
         return list(filter(lambda x: x[0] >= self.ts, events))
