@@ -2,20 +2,23 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # , 2014.
+# Artem Vorotnikov <skybon@gmail.com>, 2014.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2014-03-02 13:58+0400\n"
-"PO-Revision-Date: 2014-02-10 01:09+0400\n"
-"Last-Translator: \n"
-"Language-Team: American English <efq@raisa.su>\n"
+"PO-Revision-Date: 2014-03-02 16:17+0400\n"
+"Last-Translator: Artem Vorotnikov <skybon@gmail.com>\n"
+"Language-Team: русский <>\n"
 "Language: en_US\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Lokalize 1.5\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-Generator: Gtranslator 2.91.6\n"
 
 #: efq.py:598
 #, python-brace-format
@@ -28,32 +31,36 @@ msgid ""
 "This link works 10 minutes since the moment when you clicked \"Ask\" "
 "button.\n"
 msgstr ""
+"Ваша ссылка для входа:\n"
+"\n"
+"http://{host}/login/token/{token}\n"
+"\n"
+"Откройте её в браузере, в которым Вы хотите войти в систему.\n"
+"Эта ссылка работает 10 минут с момента нажатия кнопки \"Запросить\".\n"
 
 #: efq.py:606
-#, fuzzy
 msgid "EFQ Authentication"
-msgstr "Аутентифицироваться"
+msgstr "Аутентификация EFQ"
 
 #: templates/admin.html:6
-#, fuzzy
 msgid "Authenticate as other user"
-msgstr "Аутентифицироваться"
+msgstr "Войти под другим именем"
 
 #: templates/admin.html:13 templates/angular.html:310 templates/base.html:70
 msgid "Authenticate"
-msgstr "Аутентифицироваться"
+msgstr "Войти"
 
 #: templates/admin.html:20
 msgid "Ban by IP address"
-msgstr ""
+msgstr "Бан по IP-адресу"
 
 #: templates/admin.html:27
 msgid "Ban"
-msgstr ""
+msgstr "Бан"
 
 #: templates/already_identified.html:4
 msgid "You have been identified already!"
-msgstr ""
+msgstr "Вы уже вошли в систему"
 
 #: templates/angular.html:288 templates/base.html:48
 msgid "Home"
@@ -61,7 +68,7 @@ msgstr "Главная"
 
 #: templates/angular.html:289 templates/base.html:49
 msgid "EFQ"
-msgstr ""
+msgstr "EFQ"
 
 #: templates/angular.html:290 templates/base.html:50
 msgid "Rules"
@@ -97,15 +104,15 @@ msgstr "Выйти"
 
 #: templates/angular.html:333
 msgid "VG"
-msgstr ""
+msgstr "10"
 
 #: templates/angular.html:337
 msgid "AS"
-msgstr ""
+msgstr "20"
 
 #: templates/angular.html:341
 msgid "HQ"
-msgstr ""
+msgstr "40"
 
 #: templates/angular.html:352
 msgid "You have to <a href=\"/login\">authenticate</a> to join a waitlist."
@@ -166,13 +173,12 @@ msgid "Disband"
 msgstr "Расформировать"
 
 #: templates/angular.html:461
-#, fuzzy
 msgid "You are not a FC in fleet where you are"
-msgstr "Вы не являетесь ФК этого флота."
+msgstr "Вы не являетесь ФК этого флота"
 
 #: templates/angular.html:473 templates/base.html:94
 msgid "Back to top"
-msgstr ""
+msgstr "Назад наверх"
 
 #: templates/angular.html:478 templates/base.html:103
 msgid ""
@@ -180,12 +186,17 @@ msgid ""
 "a>. Contact him at <a href=\"mailto:andrew@ei-grad.ru\">andrew@ei-grad.ru</"
 "a>."
 msgstr ""
+"Разработано <a href=\"http://eve.ei-grad.ru\" rel=\"nofollow\">Андреем "
+"Григорьевым</a>. Можете с ним связаться по адресу <a href=\"mailto:andrew@ei-"
+"grad.ru\">andrew@ei-grad.ru</a>."
 
 #: templates/angular.html:479 templates/base.html:104
 msgid ""
 "Code released under the <a href=\"https://github.com/raisa-shield/efq/LICENSE"
 "\">MIT License</a>."
 msgstr ""
+"Код лицензирован согласно условиям <a href=\"https://github.com/raisa-shield/"
+"efq/LICENSE\">MIT License</a>."
 
 #: templates/angular.html:480
 msgid ""
@@ -194,6 +205,10 @@ msgid ""
 "<a href=\"http://fortawesome.github.io/Font-Awesome/\" rel=\"nofollow\">Font "
 "Awesome</a>. Looks best with Eve Sans Neue font installed."
 msgstr ""
+"Сделано на основе <a href=\"http://getbootstrap.com\" rel=\"nofollow"
+"\">Bootstrap</a> и темы <a href=\"http://bootswatch.com/cyborg/\">Cyborg</"
+"a>. Значки из <a href=\"http://fortawesome.github.io/Font-Awesome/\" rel="
+"\"nofollow\">Font Awesome</a>. Лучше всего выглядит с шрифтом Eve Sans Neue."
 
 #: templates/base.html:105
 msgid ""
@@ -205,33 +220,35 @@ msgstr ""
 
 #: templates/fit.html:4
 msgid "Current fit"
-msgstr ""
+msgstr "Текущий фит"
 
 #: templates/fit.html:7
 msgid "Upload a new fit"
-msgstr ""
+msgstr "Загрузить новый фит"
 
 #: templates/fit.html:10
 msgid "DNA (in form \"fitting:<DNA>\")"
-msgstr ""
+msgstr "DNA (в форме \"fitting:<DNA>\")"
 
 #: templates/fit.html:15
 msgid ""
 "Send your fit to any chat channel and copy/paste your message from there to "
 "this text area. Result should contain a 'fitting:...' substring in it."
 msgstr ""
+"Отправьте Ваш фит в любой чат-канал и скопируйте Ваше сообщение оттуда в эту "
+"форму. Результат будет содержать фразу 'fitting:...'."
 
 #: templates/fit.html:21
 msgid "Upload"
-msgstr ""
+msgstr "Загрузить"
 
 #: templates/fit.html:26
 msgid "Delete fit"
-msgstr ""
+msgstr "Удалить фит"
 
 #: templates/login.html:6
 msgid "Can't find the key! Try to wait a minute."
-msgstr ""
+msgstr "Невозможно найти ключ. Подождите несколько минут."
 
 #: templates/login.html:10
 #, python-format
@@ -241,30 +258,33 @@ msgid ""
 "receive that e-mail in a couple of minutes, then you can contact this FC on "
 "our TeamSpeak server or try to request authentication link again."
 msgstr ""
+"Запрос ссылки на подтверждение был отправлен пилоту %s. Откройте ссылку в "
+"ответном письме. Если ответ не приходит, то свяжитесь с указанным пилотом на "
+"сервере TeamSpeak и запросите ссылку ещё раз."
 
 #: templates/login.html:14
 msgid "Authentication via chat channel (using eve-live.com)"
-msgstr ""
+msgstr "Аутентификация через чат-канал (используя eve-live.com)"
 
 #: templates/login.html:17
 msgid "Send the following key to"
-msgstr ""
+msgstr "Отправьте ключ"
 
 #: templates/login.html:22
 msgid "Wait some minutes."
-msgstr ""
+msgstr "Подождите."
 
 #: templates/login.html:23
 msgid "Click the \"Check\" button."
-msgstr ""
+msgstr "Кликните на кнопку \"Проверить\"."
 
 #: templates/login.html:26
 msgid "Check"
-msgstr ""
+msgstr "Проверить"
 
 #: templates/login.html:32
 msgid "Authentication via fleet commander (using EVE Mail)"
-msgstr ""
+msgstr "Аутентификация через ФК (используя почту EVE)"
 
 #: templates/login.html:37
 #, python-format
@@ -272,31 +292,33 @@ msgid ""
 "There is %d FC online now. You can ask him to send an ingame email with "
 "authentication link for you."
 msgstr ""
+"Сейчас в сети %d ФК. Попросите его отправить письмо по внутриигровой почте с "
+"ссылкой аутентификации."
 
 #: templates/login.html:45
 msgid "Enter your character name:"
-msgstr ""
+msgstr "Введите имя пилота:"
 
 #: templates/login.html:49
 msgid "Ask"
-msgstr ""
+msgstr "Запросить"
 
 #: templates/login.html:52
 msgid "There are no FC online now. This method would not work without a FC."
-msgstr ""
+msgstr "Сейчас нет доступных ФК. Этот метод не работает без участия ФК."
 
 #: templates/login_success.html:4
 msgid "You have been successfully logged in as"
-msgstr ""
+msgstr "Вы успешно вошли как"
 
 #: templates/logout.html:4
 msgid "Are you sure want to logout?"
-msgstr ""
+msgstr "Вы уверены, что хотите выйти?"
 
 #: templates/m_fit.html:4
 msgid "fit is not loaded"
-msgstr ""
+msgstr "фит не загружен"
 
 #: templates/trust.html:5
 msgid "This site requires trust to work."
-msgstr ""
+msgstr "Для работы сайта его нужно занести в белый список"
