@@ -485,7 +485,7 @@ class WaitlistHandler(JsonMixin, BaseHandler):
                 self.WAITLIST.remove(self.character)
 
         e = {
-            'action': 'user_waitlist_changed',
+            'action': 'character_waitlist_changed',
             'charname': self.character.name,
             'waitlist': list(self.character.waitlist),
         }
@@ -690,7 +690,7 @@ class FleetsHandler(BaseFreeHandler):
         fleet.system = self.eve.get('solarsystemname')
         fleet.systemid = self.eve.get('solarsystemid')
         self.event({'action': 'new_fleet', 'fleet': fleet.to_json()})
-        self.character.event({'action': 'update_character',
+        self.character.event({'action': 'character_invited_to_fleet',
                               'charname': self.character.name,
                               'fleet': fleet.fc.name})
 
@@ -700,11 +700,12 @@ class JoinHandler(BaseFreeHandler):
     def post(self):
         logger.debug(self.request.arguments)
         fc = yield get_character(self.get_argument('fleet'))
-        if fc.fleet is not None:
-            if self.character in fc.fleet.queue:
-                fc.fleet.dequeue(self.character)
-            fc.fleet.enqueue(self.character)
-            self.character.event({'action': 'update_character',
+        fleet = fc.fleet
+        if fleet is not None:
+            if self.character in fleet.queue:
+                fleet.dequeue(self.character)
+            fleet.enqueue(self.character)
+            self.character.event({'action': 'character_joined_fleet_queue',
                                   'charname': self.character.name,
                                   'fleet': fc.name})
         else:
@@ -719,11 +720,8 @@ class LeaveHandler(BaseQueueHandler):
     def post(self):
         fleet = self.character.fleet
         fleet.dequeue(self.character)
-        self.event({'action': 'update_fleet',
-                    'fleet': fleet.to_json()})
-        self.event({'action': 'update_character',
-                    'charname': self.character.name,
-                    'fleet': None})
+        self.event({'action': 'character_left_fleet',
+                    'charname': self.character.name})
 
 
 class TypeHandler(BaseHandler):
@@ -731,7 +729,7 @@ class TypeHandler(BaseHandler):
     def post(self):
         fleet = self.character.fleet
         fleet.fleet_type = self.get_argument('fleet_type')
-        self.event({'action': 'update_fleet',
+        self.event({'action': 'fleet_type_changed',
                     'fleet': fleet.fc.name,
                     'fleet_type': fleet.fleet_type})
 
@@ -748,10 +746,10 @@ class DisbandHandler(BaseHandler):
 
         for i in chain(fleet.fcs, fleet.queue, fleet.members):
             i.fleet = None
-            self.event({'action': 'update_character', 'charname': i.name, 'fleet': None})
+            self.event({'action': 'character_left_fleet', 'charname': i.name, 'fleet': None})
             i.add_message("Fleet has been disbanded.")
 
-        self.event({'action': 'remove_fleet', 'fleet': fleet.fc.name})
+        self.event({'action': 'del_fleet', 'fleet': fleet.fc.name})
 
 
 class TransferHandler(BaseHandler):
