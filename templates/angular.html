@@ -34,25 +34,19 @@
 
     var efq = angular.module('efqApp', []);
 
-    {% if character and character.is_fc %}
     efq.filter('character', function($sce) {
       return function(character) {
         var code = '<a class="igb" href="javascript:CCPEVE.showInfo(1377, ' + character.charid + ')">' + character.name.replace(" ", "&nbsp;") + '</a> ';
         if (character.fit != null) {
           code = code + '- <a class="igb" href="javascript:CCPEVE.showFitting(\'' + character.fit + '\')">' + character.ship + '</a>';
+        } else if (character.ship) {
+          code = code + ' - ' + character.ship;
         } else {
           code = code + '- {{ _("no fit") }}';
         }
         return $sce.trustAsHtml(code);
       }
     })
-    {% else %}
-    efq.filter('character', function($sce) {
-      return function(character) {
-        return $sce.trustAsHtml('<a class="igb" href="javascript:CCPEVE.showInfo(1377, ' + character.charid + ')">' + character.name.replace(" ", "&nbsp;") + '</a>' + ' - ' + character.ship);
-      }
-    })
-    {% end %}
 
     var types = {
       10: "{{ _('VG') }}",
@@ -96,6 +90,9 @@
         },
 
         character_waitlist_changed: function(data) {
+          if ($scope.characters[data.charname] == undefined) {
+             $scope.characters[data.charname] = {charname: data.charname, waitlist: []};
+          }
           var character = $scope.characters[data.charname];
           if (character.fleet == null) {
             character.waitlist = data.waitlist;
@@ -113,7 +110,20 @@
         },
 
         character_fit_changed: function(data) {
-          $scope.characters[data.charname].fit = data.fit;
+          var character = $scope.characters[data.charname];
+          character.fit = data.fit;
+          character.ship = data.ship;
+          $scope.groups.forEach(function(g) {
+            var i = g.members.indexOf(data.charname);
+            if (i != -1) g.members.splice(i, 1);
+          });
+          if ($scope.character.fleet) {
+            var fc = $scope.character.fleet;
+            var fleet = $scope.fleets[fc];
+            if (fc == character.fleet || character.waitlist.indexOf(fleet.fleet_type) != -1) {
+              $scope.groups[$scope.getGroup(character.ship)].push(character.name);
+            }
+          }
         },
 
         character_invited_to_fleet: function(data) {
@@ -123,7 +133,9 @@
           character.waitlist = [];
 
           var fleet = $scope.fleets[data.fleet];
-          fleet.members.push(data.charname);
+          if (fleet.members.indexOf($scope.character.name) == -1) {
+            fleet.members.push(data.charname);
+          }
 
           $scope.setView(data.fleet);
 
@@ -194,7 +206,7 @@
             $scope.$digest();
           })
           .fail(function() {
-            setTimeout(polling, 5000);
+            setTimeout(polling, 1000);
           })
       }
 
@@ -210,6 +222,13 @@
           if (hasOwnProperty.call(obj, key)) return false;
         }
         return true;
+      }
+
+      $scope.getGroup = function(ship) {
+        if (["Basilisk", "Scimitar"].indexOf(ship) != -1) return 'logi';
+        if (["Vindicator"].indexOf(ship) != -1) return 'vindi';
+        if (["Machariel", "Nightmare"].indexOf(ship) != -1) return 'snipe';
+        return 'other';
       }
 
       $scope.inQueue = function(character) {
@@ -249,6 +268,7 @@
       $scope.characters = {% raw json_encode(characters).replace('}, ', '},\n') %}
       $scope.waitlist = {% raw json_encode(waitlist) %}
       $scope.fleets = {% raw json_encode(dict((fleet.fc.name, fleet.to_json()) for fleet in fleets.values())) %};
+      $scope.groups = {logi: [], vindi: [], snipe: [], other: []};
 
       {% if character %}
       <!-- Character related stuff -->
@@ -439,7 +459,7 @@
         <div class="panel panel-default">
           <div class="panel-heading">{{ _("Logistics") }}:</div>
           <ul class="list-group">
-            <li class="list-group-item" ng-repeat="i in waitlist | filter:shipIs(['Basilisc', 'Scimitar'])">
+            <li class="list-group-item" ng-repeat="i in waitlist.concat() | filter:shipIs(['Basilisk', 'Scimitar'])">
               <span ng-bind-html="characters[i] | character"></span> <span>({{! characters[i].waitlist.join(', ') }})</span>
               {% if character is not None and character.is_fc %}
               <div class="pull-right" ng-show="character.fleet">
@@ -484,7 +504,7 @@
         <div class="panel panel-default">
           <div class="panel-heading">{{ _('Other') }}:</div>
           <ul class="list-group">
-            <li class="list-group-item" ng-repeat="i in waitlist | filter:shipIsNot(['Vindicator', 'Machariel', 'Nightmare', 'Basilisc', 'Scimitar'])">
+            <li class="list-group-item" ng-repeat="i in waitlist | filter:shipIsNot(['Vindicator', 'Machariel', 'Nightmare', 'Basilisk', 'Scimitar'])">
               <span ng-bind-html="characters[i] | character"></span> <span>({{! characters[i].waitlist.join(', ') }})</span>
               {% if character is not None and character.is_fc %}
               <div class="pull-right" ng-show="character.fleet">
@@ -502,7 +522,7 @@
 
         <div class="well">
           {{ _('FC:') }} <a class="igb" ng-click="CCPEVE.showInfo(1377, characters[fleet.fc].charid)" ng-bind="fleet.fc"></a> |
-          {{ _('System:') }} <a class="igb" ng-click="CCPEVE.showInfo(5, fleet.systemid)" ng-bind="fleet.system"></a>
+          {{ _('System:') }} <a class="igb" ng-click="CCPEVE.setDestination(fleet.systemid)" ng-bind="fleet.system"></a>
 
           <div ng-show="character.fleet == null">
             </br>
@@ -510,7 +530,7 @@
           </div>
         </div>
 
-        <div ng-repeat="ship in ['Vindicator', 'Machariel', 'Nightmare', 'Basilisc', 'Scimitar']">
+        <div ng-repeat="ship in ['Vindicator', 'Machariel', 'Nightmare', 'Basilisk', 'Scimitar']">
           <div class="panel panel-default">
             <div class="panel-heading">{{! ship }}s:</div>
             <ul class="list-group">

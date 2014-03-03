@@ -225,21 +225,18 @@ class Fleet(object):
         # fc is the fleet id
         self._fc = fc
 
-        self.fcs = [fc]
-
         fc.fleet = self
 
         self.fleet_type = fleet_type
         self.system = None
         self.systemid = None
         self.queue = []
-        self.members = []
+        self.members = [fc]
         self.status = 'forming'
 
     def to_json(self, fit=False):
         return {
             'fc': self.fc.name,
-            'fcs': [i.name for i in self.fcs],
             'fleet_type': self.fleet_type,
             'system': self.system,
             'systemid': self.systemid,
@@ -252,34 +249,10 @@ class Fleet(object):
     def fc(self):
         return self._fc
 
-    def enqueue(self, character):
-        if character in self.fcs:
-            raise CharacterInFleetFCS(character)
-        if character.fleet is not None and character.fleet is not self:
-            raise CharacterInOtherFleet(character)
-        if character in self.queue:
-            self.queue.remove(character)
-        self.queue.append(character)
-        character.fleet = self
-        character.waitlist.clear()
-
-    def dequeue(self, character):
-        if character in self.queue:
-            self.queue.remove(character)
-        character.fleet = None
-
-    def invite(self, character):
-        if character in self.queue:
-            self.queue.remove(character)
-        self.members.append(character)
-        character.waitlist = set()
-
     def transfer(self, to):
-        if to not in self.fcs:
-            raise Exception('%s is not a FC of this fleet!' % to.name)
-        flt = get_fleet(to, self.fleet_type)
-        flt.queue = self.queue
-        flt.fcs = self.fcs
+        fleet = get_fleet(to, self.fleet_type)
+        fleet.queue = self.queue
+        fleet.members = self.members
 
 
 _DEFAULT = object()
@@ -742,7 +715,7 @@ class DisbandHandler(BaseHandler):
 
         del FLEETS[fc]
 
-        for i in chain(fleet.fcs, fleet.queue, fleet.members):
+        for i in chain(fleet.queue, fleet.members):
             i.fleet = None
             self.event({'action': 'character_left_fleet', 'charname': i.name, 'fleet': None})
             i.add_message("Fleet has been disbanded.")
@@ -766,10 +739,19 @@ class InviteHandler(BaseHandler):
     fc_required = True
     @gen.coroutine
     def post(self):
-        character = yield get_character(self.get_argument('character'))
-        self.character.fleet.invite(character)
-        character.add_message('You were invited to the fleet.', 'success')
-        self.redirect('/fc')
+        fleet = self.character.fleet
+        if fleet is not None:
+            character = yield get_character(self.get_argument('character'))
+            if character in fleet.queue:
+                fleet.queue.remove(character)
+            fleet.members.append(character)
+            character.fleet = fleet
+            character.waitlist = set()
+            self.event({'action': 'character_invited_to_fleet',
+                        'charname': character['charname'],
+                        'fleet': fleet.fc.name})
+        else:
+            self.send_error(400, reason="You are not in the fleet.")
 
 
 class DeclineHandler(BaseHandler):
@@ -778,6 +760,7 @@ class DeclineHandler(BaseHandler):
     def post(self):
         character = yield get_character(self.get_argument('character'))
         character.add_message('Вы были исключены из очереди', 'danger')
+        character.waitlist = set()
         self.character.fleet.dequeue(character)
         self.redirect('/fc')
 
@@ -805,7 +788,7 @@ class PollHandler(JsonMixin, BaseHandler):
                 self.set_secure_cookie('uuid', self.uuid)
                 self.finish([{"action": "reload"}])
             else:
-                if self.character not in self.ONLINE:
+                if not self.character.callbacks:
                     self.ONLINE.add(self.character)
                 self.character.callbacks.append(self.event)
         else:
@@ -849,7 +832,7 @@ class PollHandler(JsonMixin, BaseHandler):
         if self.character:
             if self.event in self.character.callbacks:
                 self.character.callbacks.remove(self.event)
-                if not self.character.callbacks and self.character in self.ONLINE:
+                if not self.character.callbacks:
                     self.ONLINE.remove(self.character)
         else:
             if self.event in self.GUEST_CALLBACKS:
@@ -933,7 +916,7 @@ class FitHandler(BaseHandler):
         redis.set('efq:fitting:%s' % self.character.name, self.character.fit)
 
         e = {
-            'action': 'fit_updated',
+            'action': 'character_fit_changed',
             'charname': self.character.name,
             'ship': self.character.ship,
             'fit': self.character.fit,

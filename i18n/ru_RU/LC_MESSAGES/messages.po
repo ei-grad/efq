@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-03-02 17:14+0400\n"
-"PO-Revision-Date: 2014-03-02 16:48+0400\n"
+"POT-Creation-Date: 2014-03-02 23:44+0400\n"
+"PO-Revision-Date: 2014-03-02 20:23+0400\n"
 "Last-Translator: Andrew Grigorev <andrew@ei-grad.ru>\n"
 "Language-Team: Russian <efq@raisa.su>\n"
 "Language: ru\n"
@@ -20,33 +20,11 @@ msgstr ""
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Generator: Lokalize 1.5\n"
 
-#: efq.py:598
-#, python-brace-format
-msgid ""
-"Your auth link is:\n"
-"\n"
-"http://{host}/login/token/{token}\n"
-"\n"
-"Open it in browser in which you want to authenticate.\n"
-"This link works 10 minutes since the moment when you clicked \"Ask\" "
-"button.\n"
-msgstr ""
-"Ваша ссылка для входа:\n"
-"\n"
-"http://{host}/login/token/{token}\n"
-"\n"
-"Откройте её в браузере, в которым Вы хотите войти в систему.\n"
-"Эта ссылка работает 10 минут с момента нажатия кнопки \"Запросить\".\n"
-
-#: efq.py:606
-msgid "EFQ Authentication"
-msgstr "Аутентификация EFQ"
-
 #: templates/admin.html:6
 msgid "Authenticate as other user"
 msgstr "Войти под другим именем"
 
-#: templates/admin.html:13 templates/angular.html:345 templates/base.html:70
+#: templates/admin.html:13 templates/angular.html:344 templates/base.html:70
 msgid "Authenticate"
 msgstr "Войти"
 
@@ -62,129 +40,129 @@ msgstr "Бан"
 msgid "You have been identified already!"
 msgstr "Вы уже вошли в систему"
 
-#: templates/angular.html:323 templates/base.html:48
+#: templates/angular.html:322 templates/base.html:48
 msgid "Home"
 msgstr "Главная"
 
-#: templates/angular.html:324 templates/base.html:49
+#: templates/angular.html:323 templates/base.html:49
 msgid "EFQ"
 msgstr "EFQ"
 
-#: templates/angular.html:325 templates/base.html:50
+#: templates/angular.html:324 templates/base.html:50
 msgid "Rules"
 msgstr "Правила"
 
-#: templates/angular.html:326 templates/base.html:51
+#: templates/angular.html:325 templates/base.html:51
 msgid "Fits"
 msgstr "Фиты"
 
-#: templates/angular.html:327 templates/base.html:52
+#: templates/angular.html:326 templates/base.html:52
 msgid "SRP"
 msgstr "Страхование"
 
-#: templates/angular.html:328 templates/base.html:53
+#: templates/angular.html:327 templates/base.html:53
 msgid "Guides"
 msgstr "Справочная служба"
 
-#: templates/angular.html:329 templates/base.html:54
+#: templates/angular.html:328 templates/base.html:54
 msgid "About us"
 msgstr "О канале"
 
-#: templates/angular.html:336 templates/base.html:61
+#: templates/angular.html:335 templates/base.html:61
 msgid "Admin"
 msgstr "Администрирование\t"
 
-#: templates/angular.html:337 templates/base.html:62
+#: templates/angular.html:336 templates/base.html:62
 msgid "Fit"
 msgstr "Фит"
 
-#: templates/angular.html:338 templates/base.html:63 templates/logout.html:7
+#: templates/angular.html:337 templates/base.html:63 templates/logout.html:7
 msgid "Logout"
 msgstr "Выйти"
 
-#: templates/angular.html:368
+#: templates/angular.html:367
 msgid "VG"
 msgstr "10"
 
-#: templates/angular.html:372
+#: templates/angular.html:371
 msgid "AS"
 msgstr "20"
 
-#: templates/angular.html:376
+#: templates/angular.html:375
 msgid "HQ"
 msgstr "40"
 
-#: templates/angular.html:388
+#: templates/angular.html:387
 msgid "You have to <a href=\"/login\">authenticate</a> to join a waitlist."
 msgstr ""
 "Необходимо <a href=\"/login\">аутентифицироваться</a> чтобы присоединиться к "
 "списку запаса."
 
-#: templates/angular.html:392
+#: templates/angular.html:391
 msgid "Fleets"
 msgstr "Флоты"
 
-#: templates/angular.html:393
+#: templates/angular.html:392
 msgid "Waitlist"
 msgstr "Запас"
 
-#: templates/angular.html:413
+#: templates/angular.html:412
 msgid "There are no fleets now, or FCs are not using EFQ."
 msgstr "Флотов сейчас нет, либо ФК не используют EFQ."
 
-#: templates/angular.html:419
+#: templates/angular.html:418
 msgid "New fleet"
 msgstr "Новый флот"
 
-#: templates/angular.html:429
+#: templates/angular.html:428
 msgid "Form"
 msgstr "Сформировать"
 
-#: templates/angular.html:440
+#: templates/angular.html:439
 msgid "Logistics"
 msgstr "Логисты"
 
-#: templates/angular.html:455
+#: templates/angular.html:454
 msgid "Vindicators"
 msgstr "Виндикаторы"
 
-#: templates/angular.html:470
+#: templates/angular.html:469
 msgid "Machariels and Nightmares"
 msgstr "Мачалки и Найтмары"
 
-#: templates/angular.html:485
+#: templates/angular.html:484
 msgid "Other"
 msgstr "Другие"
 
-#: templates/angular.html:504
+#: templates/angular.html:503
 msgid "FC:"
 msgstr "ФК:"
 
-#: templates/angular.html:505
+#: templates/angular.html:504
 msgid "System:"
 msgstr "Система:"
 
-#: templates/angular.html:509
+#: templates/angular.html:508
 msgid "Apply to this particular fleet"
 msgstr "Присоединиться к запасу этого флота"
 
-#: templates/angular.html:524
+#: templates/angular.html:523
 msgid "Fleet settings"
 msgstr "Параметры флота"
 
-#: templates/angular.html:528
+#: templates/angular.html:527
 msgid "Disband"
 msgstr "Расформировать"
 
-#: templates/angular.html:534
+#: templates/angular.html:533
 msgid "You are not a FC in fleet where you are"
 msgstr "Вы не являетесь ФК этого флота"
 
-#: templates/angular.html:545 templates/base.html:94
+#: templates/angular.html:544 templates/base.html:94
 msgid "Back to top"
 msgstr "Вернуться наверх"
 
-#: templates/angular.html:550 templates/base.html:103
+#: templates/angular.html:549 templates/base.html:103
 msgid ""
 "Made by <a href=\"http://eve.ei-grad.ru\" rel=\"nofollow\">Andrew Grigorev</"
 "a>. Contact him at <a href=\"mailto:andrew@ei-grad.ru\">andrew@ei-grad.ru</"
@@ -194,7 +172,7 @@ msgstr ""
 "Григорьевым</a>. Можете с ним связаться по адресу <a href=\"mailto:andrew@ei-"
 "grad.ru\">andrew@ei-grad.ru</a>."
 
-#: templates/angular.html:551 templates/base.html:104
+#: templates/angular.html:550 templates/base.html:104
 msgid ""
 "Code released under the <a href=\"https://github.com/raisa-shield/efq/LICENSE"
 "\">MIT License</a>."
@@ -202,7 +180,7 @@ msgstr ""
 "Код лицензирован согласно условиям <a href=\"https://github.com/raisa-shield/"
 "efq/LICENSE\">MIT License</a>."
 
-#: templates/angular.html:552 templates/base.html:105
+#: templates/angular.html:551 templates/base.html:105
 msgid ""
 "Based on <a href=\"http://getbootstrap.com\" rel=\"nofollow\">Bootstrap</a> "
 "and <a href=\"http://bootswatch.com/cyborg/\">Cyborg</a> theme. Icons from "
@@ -212,7 +190,8 @@ msgstr ""
 "Сделано на основе <a href=\"http://getbootstrap.com\" rel=\"nofollow"
 "\">Bootstrap</a> и темы <a href=\"http://bootswatch.com/cyborg/\">Cyborg</"
 "a>. Значки из <a href=\"http://fortawesome.github.io/Font-Awesome/\" rel="
-"\"nofollow\">Font Awesome</a>. Лучше всего выглядит с шрифтом Eve Sans Neue."
+"\"nofollow\">Font Awesome</a>. Установите шрифт Eve Sans Neue чтобы сайт "
+"выглядел лучше."
 
 #: templates/fit.html:4
 msgid "Current fit"
@@ -247,7 +226,7 @@ msgid "Can't find the key! Try to wait a minute."
 msgstr "Невозможно найти ключ. Подождите несколько минут."
 
 #: templates/login.html:10
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "Request to send an ingame e-mail with authentication link has been sent to "
 "%s. Wait for email and follow the link contained in it. If you will not "
@@ -264,11 +243,11 @@ msgstr "Аутентификация через чат-канал (исполь�
 
 #: templates/login.html:17
 msgid "Send the following key to"
-msgstr "Отправьте ключ"
+msgstr "Отправьте этот ключ в канал"
 
 #: templates/login.html:22
 msgid "Wait some minutes."
-msgstr "Подождите."
+msgstr "Подождите пару минут."
 
 #: templates/login.html:23
 msgid "Click the \"Check\" button."
@@ -327,6 +306,25 @@ msgstr "фит не загружен"
 #: templates/trust.html:5
 msgid "This site requires trust to work."
 msgstr "Для работы сайта его нужно занести в белый список"
+
+#~ msgid ""
+#~ "Your auth link is:\n"
+#~ "\n"
+#~ "http://{host}/login/token/{token}\n"
+#~ "\n"
+#~ "Open it in browser in which you want to authenticate.\n"
+#~ "This link works 10 minutes since the moment when you clicked \"Ask\" "
+#~ "button.\n"
+#~ msgstr ""
+#~ "Ваша ссылка для входа:\n"
+#~ "\n"
+#~ "http://{host}/login/token/{token}\n"
+#~ "\n"
+#~ "Откройте её в браузере, в которым Вы хотите войти в систему.\n"
+#~ "Эта ссылка работает 10 минут с момента нажатия кнопки \"Запросить\".\n"
+
+#~ msgid "EFQ Authentication"
+#~ msgstr "Аутентификация EFQ"
 
 #~ msgid "FC"
 #~ msgstr "ФК"
