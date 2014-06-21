@@ -11,5 +11,5 @@ class Fit(UIModule):
 class Character(UIModule):
     def render(self, character):
         return '<a href="javascript:CCPEVE.showInfo(1377, %s)">%s</a>' % (
-            character.charid, character.name.replace(' ', '&nbsp;')
+            character.charid, character.charname.replace(' ', '&nbsp;')
         )

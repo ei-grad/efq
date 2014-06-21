@@ -1,0 +1,282 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-03-02 23:44+0400\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: templates/admin.html:6
+msgid "Authenticate as other user"
+msgstr ""
+
+#: templates/admin.html:13 templates/angular.html:344 templates/base.html:70
+msgid "Authenticate"
+msgstr ""
+
+#: templates/admin.html:20
+msgid "Ban by IP address"
+msgstr ""
+
+#: templates/admin.html:27
+msgid "Ban"
+msgstr ""
+
+#: templates/already_identified.html:4
+msgid "You have been identified already!"
+msgstr ""
+
+#: templates/angular.html:322 templates/base.html:48
+msgid "Home"
+msgstr ""
+
+#: templates/angular.html:323 templates/base.html:49
+msgid "EFQ"
+msgstr ""
+
+#: templates/angular.html:324 templates/base.html:50
+msgid "Rules"
+msgstr ""
+
+#: templates/angular.html:325 templates/base.html:51
+msgid "Fits"
+msgstr ""
+
+#: templates/angular.html:326 templates/base.html:52
+msgid "SRP"
+msgstr ""
+
+#: templates/angular.html:327 templates/base.html:53
+msgid "Guides"
+msgstr ""
+
+#: templates/angular.html:328 templates/base.html:54
+msgid "About us"
+msgstr ""
+
+#: templates/angular.html:335 templates/base.html:61
+msgid "Admin"
+msgstr ""
+
+#: templates/angular.html:336 templates/base.html:62
+msgid "Fit"
+msgstr ""
+
+#: templates/angular.html:337 templates/base.html:63 templates/logout.html:7
+msgid "Logout"
+msgstr ""
+
+#: templates/angular.html:367
+msgid "VG"
+msgstr ""
+
+#: templates/angular.html:371
+msgid "AS"
+msgstr ""
+
+#: templates/angular.html:375
+msgid "HQ"
+msgstr ""
+
+#: templates/angular.html:387
+msgid "You have to <a href=\"/login\">authenticate</a> to join a waitlist."
+msgstr ""
+
+#: templates/angular.html:391
+msgid "Fleets"
+msgstr ""
+
+#: templates/angular.html:392
+msgid "Waitlist"
+msgstr ""
+
+#: templates/angular.html:412
+msgid "There are no fleets now, or FCs are not using EFQ."
+msgstr ""
+
+#: templates/angular.html:418
+msgid "New fleet"
+msgstr ""
+
+#: templates/angular.html:428
+msgid "Form"
+msgstr ""
+
+#: templates/angular.html:439
+msgid "Logistics"
+msgstr ""
+
+#: templates/angular.html:454
+msgid "Vindicators"
+msgstr ""
+
+#: templates/angular.html:469
+msgid "Machariels and Nightmares"
+msgstr ""
+
+#: templates/angular.html:484
+msgid "Other"
+msgstr ""
+
+#: templates/angular.html:503
+msgid "FC:"
+msgstr ""
+
+#: templates/angular.html:504
+msgid "System:"
+msgstr ""
+
+#: templates/angular.html:508
+msgid "Apply to this particular fleet"
+msgstr ""
+
+#: templates/angular.html:523
+msgid "Fleet settings"
+msgstr ""
+
+#: templates/angular.html:527
+msgid "Disband"
+msgstr ""
+
+#: templates/angular.html:533
+msgid "You are not a FC in fleet where you are"
+msgstr ""
+
+#: templates/angular.html:544 templates/base.html:94
+msgid "Back to top"
+msgstr ""
+
+#: templates/angular.html:549 templates/base.html:103
+msgid ""
+"Made by <a href=\"http://eve.ei-grad.ru\" rel=\"nofollow\">Andrew Grigorev</"
+"a>. Contact him at <a href=\"mailto:andrew@ei-grad.ru\">andrew@ei-grad.ru</"
+"a>."
+msgstr ""
+
+#: templates/angular.html:550 templates/base.html:104
+msgid ""
+"Code released under the <a href=\"https://github.com/raisa-shield/efq/LICENSE"
+"\">MIT License</a>."
+msgstr ""
+
+#: templates/angular.html:551 templates/base.html:105
+msgid ""
+"Based on <a href=\"http://getbootstrap.com\" rel=\"nofollow\">Bootstrap</a> "
+"and <a href=\"http://bootswatch.com/cyborg/\">Cyborg</a> theme. Icons from "
+"<a href=\"http://fortawesome.github.io/Font-Awesome/\" rel=\"nofollow\">Font "
+"Awesome</a>. Looks best with Eve Sans Neue font installed."
+msgstr ""
+
+#: templates/fit.html:4
+msgid "Current fit"
+msgstr ""
+
+#: templates/fit.html:7
+msgid "Upload a new fit"
+msgstr ""
+
+#: templates/fit.html:10
+msgid "DNA (in form \"fitting:<DNA>\")"
+msgstr ""
+
+#: templates/fit.html:15
+msgid ""
+"Send your fit to any chat channel and copy/paste your message from there to "
+"this text area. Result should contain a 'fitting:...' substring in it."
+msgstr ""
+
+#: templates/fit.html:21
+msgid "Upload"
+msgstr ""
+
+#: templates/fit.html:26
+msgid "Delete fit"
+msgstr ""
+
+#: templates/login.html:6
+msgid "Can't find the key! Try to wait a minute."
+msgstr ""
+
+#: templates/login.html:10
+#, python-format
+msgid ""
+"Request to send an ingame e-mail with authentication link has been sent to "
+"%s. Wait for email and follow the link contained in it. If you will not "
+"receive that e-mail in a couple of minutes, then you can contact this FC on "
+"our TeamSpeak server or try to request an authentication link again."
+msgstr ""
+
+#: templates/login.html:14
+msgid "Authentication via chat channel (using eve-live.com)"
+msgstr ""
+
+#: templates/login.html:17
+msgid "Send the following key to"
+msgstr ""
+
+#: templates/login.html:22
+msgid "Wait some minutes."
+msgstr ""
+
+#: templates/login.html:23
+msgid "Click the \"Check\" button."
+msgstr ""
+
+#: templates/login.html:26
+msgid "Check"
+msgstr ""
+
+#: templates/login.html:32
+msgid "Authentication via fleet commander (using EVE Mail)"
+msgstr ""
+
+#: templates/login.html:37
+#, python-format
+msgid ""
+"There is %d FC online now. You can ask him to send an ingame email with "
+"authentication link for you."
+msgid_plural ""
+"There are %d FC online now. You can ask one of them to send an ingame email "
+"with authentication link for you."
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/login.html:45
+msgid "Enter your character name:"
+msgstr ""
+
+#: templates/login.html:49
+msgid "Ask"
+msgstr ""
+
+#: templates/login.html:52
+msgid "There are no FC online now. This method would not work without a FC."
+msgstr ""
+
+#: templates/login_success.html:4
+msgid "You have been successfully logged in as"
+msgstr ""
+
+#: templates/logout.html:4
+msgid "Are you sure want to logout?"
+msgstr ""
+
+#: templates/m_fit.html:4
+msgid "fit is not loaded"
+msgstr ""
+
+#: templates/trust.html:5
+msgid "This site requires trust to work."
+msgstr ""

@@ -9,18 +9,21 @@
     <link href="{{ static_url('css/bootstrap.min.css') }}" rel="stylesheet">
 
     <!-- Icons -->
-    <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
+    <!--link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet"-->
+    <link href="{{ static_url('css/font-awesome.css') }}" rel="stylesheet">
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
-      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-      <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+      <script src="http://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="http://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
     <![endif]-->
 
-    <script src="https://code.jquery.com/jquery.js"></script>
+    <!--script src="http://code.jquery.com/jquery.js"></script-->
+    <script src="{{ static_url('js/jquery.js') }}"></script>
     <script src="{{ static_url('js/bootstrap.min.js') }}"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.9/angular.min.js"></script>
+    <!--script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.9/angular.min.js"></script-->
+    <script src="{{ static_url('js/angular.min.js') }}"></script>
 
     <script>
     function getCookie(name) {
@@ -36,7 +39,7 @@
 
     efq.filter('character', function($sce) {
       return function(character) {
-        var code = '<a class="igb" href="javascript:CCPEVE.showInfo(1377, ' + character.charid + ')">' + character.name.replace(" ", "&nbsp;") + '</a> ';
+        var code = '<a class="igb" href="javascript:CCPEVE.showInfo(1377, ' + character.charid + ')">' + character.charname.replace(" ", "&nbsp;") + '</a> ';
         if (character.fit != null) {
           code = code + '- <a class="igb" href="javascript:CCPEVE.showFitting(\'' + character.fit + '\')">' + character.ship + '</a>';
         } else if (character.ship) {
@@ -91,56 +94,31 @@
 
         character_waitlist_changed: function(data) {
           if ($scope.characters[data.charname] == undefined) {
-             $scope.characters[data.charname] = {charname: data.charname, waitlist: []};
+            $scope.characters[data.charname] = {charname: data.charname, waitlist: {}};
           }
           var character = $scope.characters[data.charname];
-          if (character.fleet == null) {
-            character.waitlist = data.waitlist;
-            var i = $scope.waitlist.indexOf(data.charname);
-            if (data.waitlist.length == 0) {
-              if (i != -1) {
-                $scope.waitlist.splice(i, 1);
-              }
-            } else {
-              if (i == -1) {
-                $scope.waitlist.push(data.charname);
-              }
-            }
-          }
+          $scope.updateWaitlist(character);
         },
 
         character_fit_changed: function(data) {
           var character = $scope.characters[data.charname];
           character.fit = data.fit;
           character.ship = data.ship;
-          $scope.groups.forEach(function(g) {
-            var i = g.members.indexOf(data.charname);
-            if (i != -1) g.members.splice(i, 1);
-          });
-          if ($scope.character.fleet) {
-            var fc = $scope.character.fleet;
-            var fleet = $scope.fleets[fc];
-            if (fc == character.fleet || character.waitlist.indexOf(fleet.fleet_type) != -1) {
-              $scope.groups[$scope.getGroup(character.ship)].push(character.name);
-            }
-          }
+          $scope.updateWaitlist(character);
         },
 
         character_invited_to_fleet: function(data) {
 
           var character = $scope.characters[data.charname];
           character.fleet = data.fleet;
-          character.waitlist = [];
+          character.waitlist = {};
 
           var fleet = $scope.fleets[data.fleet];
-          if (fleet.members.indexOf($scope.character.name) == -1) {
+          if (fleet.members.indexOf($scope.character.charname) == -1) {
             fleet.members.push(data.charname);
           }
 
           $scope.setView(data.fleet);
-
-          var i = $scope.waitlist.indexOf(data.charname);
-          if (i != -1) $scope.waitlist.splice(i, 1);
 
           i = fleet.queue.indexOf(data.charname);
           if (i != -1) fleet.queue.splice(i, 1);
@@ -231,14 +209,31 @@
         return 'other';
       }
 
+      $scope.updateWaitlist = function (character) {
+        $.each($scope.groups, function(k, v) {
+          var i = v.indexOf(character.charname);
+          if (i != -1) v.splice(i, 1);
+        });
+        if ($scope.character.fleet) {
+          var fc = $scope.character.fleet;
+          var fleet = $scope.fleets[fc];
+          if (((fc == character.fleet) && (fleet.queue.indexOf(character.charname) != -1)) ||
+              (character.waitlist.indexOf(fleet.fleet_type) != -1)) {
+            $scope.groups[$scope.getGroup(character.ship)].push(character.charname);
+          }
+        } else if (character.waitlist.length > 0) {
+          $scope.groups[$scope.getGroup(character.ship)].push(character.charname);
+        }
+      }
+
       $scope.inQueue = function(character) {
         if (character.fleet == null) return false;
-        return $scope.fleets[character.fleet].queue.indexOf(character.name) != -1;
+        return $scope.fleets[character.fleet].queue.indexOf(character.charname) != -1;
       }
 
       $scope.inMembers = function(character) {
         if (character.fleet == null) return false;
-        return $scope.fleets[character.fleet].members.indexOf(character.name) != -1;
+        return $scope.fleets[character.fleet].members.indexOf(character.charname) != -1;
       }
 
       $scope.shipIs = function (ships) {
@@ -266,8 +261,7 @@
       $scope.locale = "{{ locale.code }}";
       $scope.eve = {% raw json_encode(eve) %};
       $scope.characters = {% raw json_encode(characters).replace('}, ', '},\n') %}
-      $scope.waitlist = {% raw json_encode(waitlist) %}
-      $scope.fleets = {% raw json_encode(dict((fleet.fc.name, fleet.to_json()) for fleet in fleets.values())) %};
+      $scope.fleets = {% raw json_encode(dict((fleet.fc.charname, fleet.to_json()) for fleet in fleets.values())) %};
       $scope.groups = {logi: [], vindi: [], snipe: [], other: []};
 
       {% if character %}
@@ -282,23 +276,23 @@
         $.post('/fleets', {fleet_type: $scope.new_fleet_form.fleet_type});
       }
 
-      $scope.inviteToFleet = function(name) {
+      $scope.inviteToFleet = function(charname) {
         {% if trusted %}
-        $.post('/invite', {character: name});
-        CCPEVE.inviteToFleet(parseInt($scope.characters[name].charid));
+        $.post('/invite', {character: charname});
+        CCPEVE.inviteToFleet(parseInt($scope.characters[charname].charid));
         {% else %}
         CCPEVE.requestTrust('http://{{ request.host }}');
         {% end %}
       }
 
-      $scope.fleetDecline = function(name) {
-        $.post('/decline', {character: name});
+      $scope.fleetDecline = function(charname) {
+        $.post('/decline', {character: charname});
       }
 
       <!-- end of FC-only stuff -->
       {% end %}
 
-      $scope.character = $scope.characters["{{ character.name }}"];
+      $scope.character = $scope.characters["{{ character.charname }}"];
       $scope.messages = {% raw json_encode(character.messages) %};
 
       $scope.toggle_waitlist = function(fleet_type) {
@@ -312,6 +306,7 @@
 
       $scope.joinFleet = function (fleet) {
         $.post('/join', {fleet: fleet.fc});
+        $scope.setView('waitlist');
       }
 
       $scope.disbandFleet = function () {
@@ -351,7 +346,7 @@
         <ul class="nav navbar-nav navbar-right">
           {% if character is not None %}
           <li class="dropdown">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ character.name }} <b class="caret"></b></a>
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ character.charname }} <b class="caret"></b></a>
             <ul class="dropdown-menu">
               {% if character.is_admin %}<li><a href="/admin">{{ _('Admin') }}</a></li>{% end %}
               <li><a href="/fit">{{ _('Fit') }}</a></li>
@@ -540,7 +535,7 @@
         </div>
 
         {% if character is not None and character.is_fc %}
-        <div class="panel panel-primary" ng-show="character.name == character.fleet || character.name == fleets[character.fleet].boss">
+        <div class="panel panel-primary" ng-show="character.charname == fleet.fc">
           <div class="panel-heading">{{ _('Fleet settings') }}</div>
           <div class="panel-body">
             <form method='POST'>
@@ -550,7 +545,7 @@
           </div>
         </div>
 
-        <div class="well" ng-show="fleets[character.fleet].fcs.indexOf(character.name) == -1">
+        <div class="well" ng-show="fleets[character.fleet].fcs.indexOf(character.charname) == -1">
           {{ _("You are not a FC in fleet where you are") }}
         </div>
         {% end %}

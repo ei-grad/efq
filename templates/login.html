@@ -31,12 +31,11 @@
 <div class="panel panel-default">
   <div class="panel-heading"><h3 class="panel-title">{{ _('Authentication via fleet commander (using EVE Mail)') }}</h3></div>
   <div class="panel-body">
-    {% set FCS_ONLINE = len(ONLINE.intersection(FCS)) %}
-    {% if FCS_ONLINE %}
+    {% if online_fcs %}
     <p>
       {{ _('There is %d FC online now. You can ask him to send an ingame email with authentication link for you.',
            'There are %d FC online now. You can ask one of them to send an ingame email with authentication link for you.',
-           FCS_ONLINE) % FCS_ONLINE }}
+           online_fcs) % online_fcs }}
     </p>
       <form method="POST" action="/login/mail_auth" class="form">
         {% module xsrf_form_html() %}
