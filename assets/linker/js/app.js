@@ -69,3 +69,11 @@
   window.io
 
 );
+
+
+angular.module('efq', ['ngRoute']).config(function ($routeProvider) {
+  $routeProvider.when('/', {
+    templateUrl: 'templates/queue.html',
+    controller: 'QueueController',
+  })
+});

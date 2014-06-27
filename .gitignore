@@ -32,6 +32,7 @@ npm-debug.log
 # misc / editors
 ########################
 *~
+*.swp
 *#
 .DS_STORE
 .netbeans
@@ -44,4 +45,8 @@ nbproject
 ########################
 config/local.js
 
+
+########################
+# bower
+########################
 bower_components
