@@ -23,9 +23,8 @@ module.exports = {
         host: req.headers.host,
       });
     } else {
-      var url = req.session.return_url;
-      console.log('Got trust! Redirecting to ' + url);
-      delete req.session.return_url;
+      var url = req.session.trust_return_url;
+      delete req.session.trust_return_url;
       res.redirect(url);
     }
   },
