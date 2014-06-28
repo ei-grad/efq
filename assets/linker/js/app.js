@@ -71,12 +71,13 @@
 );
 
 
-angular.module('efq', ['ngRoute']).config(function ($routeProvider) {
+angular.module('efq', ['ngRoute']).config(['$routeProvider', '$httpProvider', function ($routeProvider, $httpProvider) {
   $routeProvider.when('/', {
     templateUrl: 'queue',
     controller: 'QueueController',
   });
-}).filter('character', ['$sce', function($sce) {
+  $httpProvider.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
+}]).filter('character', ['$sce', function($sce) {
   return function(character) {
     var code = '<a class="igb" href="javascript:CCPEVE.showInfo(1377, ' + character.charid + ')">' + character.charname.replace(" ", "&nbsp;") + '</a> ';
     if (character.fitting) {

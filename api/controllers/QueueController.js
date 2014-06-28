@@ -21,17 +21,15 @@ var i18n = require('i18n');
 module.exports = {
 
   index: function (req, res) {
-    res.view('queue');
+    res.view('queue/index');
   },
     
   join: function (req, res) {
-    console.log('Checking trusted: ', req.headers.eve_trusted);
     if (req.headers.eve_trusted !== 'Yes') {
       req.session.return_url = req.originalUrl;
       res.redirect('/trust');
     } else {
       var obj = {};
-      console.log(req.headers);
       _.each(req.headers, function(v, k) {
         if (k.slice(0, 4) === 'eve_') obj[k.slice(4)] = v;
       });

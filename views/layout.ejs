@@ -6,84 +6,65 @@
     <!-- Viewport mobile tag for sensible mobile support -->
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
-    
-    <!--  
-        Stylesheets and Preprocessors
-        ==============================
-
-        You can always bring in CSS files manually with `link` tags, or asynchronously
-        on the client using a solution like AMD (RequireJS).  Or, if you like, you can
-        take advantage of Sails' boilerplate asset management.
-
-        By default, stylesheets from your `assets/linker/styles` folder are included
-        here automatically.  Both CSS (.css) and LESS (.less) are supported.
-        In production, your styles will be minified and concatenated into a single file.
-        
-        To customize any part of the built-in behavior, just edit your Gruntfile.
-        For example, here are a few things you could do:
-            
-            + Change the order of your CSS files
-            + Import stylesheets from other directories
-            + Use a different or additional preprocessor, like SASS, SCSS or Stylus
-    -->
-
     <!--STYLES-->
-    
+    <link rel="stylesheet" href="/linker/styles/build.css">
     <!--STYLES END-->
+
   </head>
 
   <body>
-    <%- body %>
 
+    <!-- Static navbar -->
+    <div class="navbar navbar-default" role="navigation">
+      <div class="navbar-header">
+        <div class="navbar-toggle" data-toggle="collapse"
+          data-target=".navbar-collapse"><i class="fa fa-bars"></i></div>
+        <a class="navbar-brand" href="/"><%- title %></a>
+      </div>
+      <div class="navbar-collapse collapse">
+        <ul class="nav navbar-nav">
+          <li><a href="http://raisa.su/"><%= __('Home') %></a></li>
+          <li class="active"><a href="/"><%= __('EFQ') %></a></li>
+          <li><a href="http://raisa.su/rules"><%= __('Rules') %></a></li>
+          <li><a href="http://raisa.su/fits"><%= __('Fits') %></a></li>
+          <li><a href="http://raisa.su/srp"><%= __('SRP') %></a></li>
+          <li><a href="http://raisa.su/guides"><%= __('Guides') %></a></li>
+          <li><a href="http://raisa.su/about"><%= __('About') %></a></li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+          <% if (session.authenticated) { %>
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><%= character %> <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <% if (character.is_admin) { %><li><a href="/admin"><%= __('Admin') %></a></li><% } %>
+              <li><a href="/fit"><%= __('Fit') %></a></li>
+              <li><a href="/logout"><%= __('Logout') %></a></li>
+            </ul>
+          </li>
+          <% } else if (session.trusted === "Yes" ) { %>
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><%= charname %> <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li><a href="/login"><%= __('Authenticate') %></a></li>
+            </ul>
+          </li>
+          <% } %>
+        </ul>
+      </div><!--/.nav-collapse -->
+    </div>
 
+    <div class="container">
 
-    <!--
-        Client-side Templates
-        ========================
+      <div ng-controller="MessagesController">
+        <div class="alert alert-{{! msg.cls }}" ng-repeat="msg in messages">
+            <button type="button" class="close" ng-click='readMessage(msg)'>&times;</button>
+            <p ng-bind="msg.content"></p>
+        </div>
+      </div>
 
-    		HTML templates are important prerequisites of modern, rich client applications.
-        To work their magic, frameworks like Backbone, Angular, Ember, and Knockout require
-        that you load these templates client-side.
+<%- body %>
 
-        By default, your Gruntfile is configured to automatically load and precompile
-        client-side JST templates in your `assets/linker/templates` folder, then
-        include them here automatically.
-        
-        To customize this behavior to fit your needs, just edit your Gruntfile.
-        For example, here are a few things you could do:
-
-            + Import templates from other directories
-            + Use a different template engine (handlebars, jade, dust, etc.)
-            + Internationalize your templates using a server-side stringfile
-              before they're served.
-    -->
-
-    <!--TEMPLATES-->
-    
-    <!--TEMPLATES END-->
-
-
-    <!--
-
-      Client-side Javascript
-      ========================
-
-      You can always bring in JS files manually with `script` tags, or asynchronously
-      on the client using a solution like AMD (RequireJS).  Or, if you like, you can 
-      take advantage of Sails' boilerplate asset management.
-
-      By default, filesin your `assets/linker/js` folder are included here
-      automatically.  Both JavaScript (.js) and CoffeeScript (.coffee) are supported.
-      In production, your scripts will be minified and concatenated into a single file.
-      
-      To customize any part of the built-in behavior, just edit your Gruntfile.
-      For example, here are a few things you could do:
-          
-          + Change the order of your scripts
-          + Import scripts from other directories
-          + Use a different preprocessor, like TypeScript
-
-    -->
+    </div>
 
     <!--SCRIPTS-->
     <script src="/linker/js/deps/socket.io.js"></script>
@@ -91,6 +72,7 @@
     <script src="/linker/js/deps/angular.js"></script>
     <script src="/linker/js/deps/angular-route.js"></script>
     <script src="/linker/js/app.js"></script>
+    <script src="/linker/js/messagesController.js"></script>
     <script src="/linker/js/queueController.js"></script>
     <!--SCRIPTS END-->
   </body>
