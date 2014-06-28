@@ -15,6 +15,9 @@
  * @docs        :: http://sailsjs.org/#!documentation/controllers
  */
 
+var i18n = require('i18n');
+
+
 module.exports = {
 
   index: function (req, res) {
@@ -33,20 +36,21 @@ module.exports = {
         if (k.slice(0, 4) === 'eve_') obj[k.slice(4)] = v;
       });
       var match = /fitting:([0-9:;]+)/g.exec(req.param('fitting'));
-      if (match.length != 2) {
-        res.session.messages = [ __("Bad fitting!") ];
+      if (match === null || match.length != 2) {
+        req.session.messages = [ res.i18n("Bad fitting!") ];
         res.redirect('/');
+      } else {
+        obj.fitting = match[1];
+        // XXX: check charname!!!
+        console.log('Adding "' + obj.charname + '" to queue.', obj);
+        PilotInQueue.create(obj, function(err, obj) {
+          if (err) {
+            res.send(err, 500);
+          } else {
+            res.redirect('/');
+          }
+        });
       }
-      obj.fitting = match[1];
-      // XXX: check charname!!!
-      console.log('Adding "' + obj.charname + '" to queue.', obj);
-      PilotInQueue.create(obj, function(err, obj) {
-        if (err) {
-          res.send(err, 500);
-        } else {
-          res.redirect('/');
-        }
-      });
     }
   },
 

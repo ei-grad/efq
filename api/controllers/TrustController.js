@@ -25,7 +25,7 @@ module.exports = {
     } else {
       var url = req.session.return_url;
       console.log('Got trust! Redirecting to ' + url);
-      req.session.return_url = undefined;
+      delete req.session.return_url;
       res.redirect(url);
     }
   },
