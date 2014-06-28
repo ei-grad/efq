@@ -73,7 +73,19 @@
 
 angular.module('efq', ['ngRoute']).config(function ($routeProvider) {
   $routeProvider.when('/', {
-    templateUrl: 'templates/queue.html',
+    templateUrl: 'queue',
     controller: 'QueueController',
-  })
-});
+  });
+}).filter('character', ['$sce', function($sce) {
+  return function(character) {
+    var code = '<a class="igb" href="javascript:CCPEVE.showInfo(1377, ' + character.charid + ')">' + character.charname.replace(" ", "&nbsp;") + '</a> ';
+    if (character.fitting) {
+      code = code + '- <a class="igb" href="javascript:CCPEVE.showFitting(\'' + character.fitting + '\')">' + character.shipname + '</a>';
+    } else if (character.ship) {
+      code = code + ' - ' + character.ship;
+    } else {
+      code = code + ' - ' + __("no fitting");
+    }
+    return $sce.trustAsHtml(code);
+  };
+}]);
