@@ -54,6 +54,8 @@ module.exports = function (grunt) {
 
     'linker/js/deps/knockout.js',
 
+    'linker/js/deps/jquery.js',
+
     'linker/js/deps/*.js',
 
     // A simpler boilerplate library for getting you up and running w/ an

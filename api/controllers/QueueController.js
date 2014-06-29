@@ -36,23 +36,22 @@ module.exports = {
     var obj = _.clone(res.locals.eve);
 
     obj.fitting = match[1];
-    obj.fleet = req.param('fleet');
 
     // XXX: check charname!!!
-    console.log('Adding "' + obj.charname + '" to queue.', obj);
+    //PilotInQueue.update({
+    //  charid: res.locals.eve.charid,
+    //});
 
-    PilotInQueue.update({
-      charid: res.locals.eve.charid,
-
-    });
-
-    PilotInQueue.create(res.locals.eve, function(err, obj) {
+    PilotInQueue.create(obj, function(err, obj) {
       if (err) {
         res.send(err, 500);
       } else {
+        PilotInQueue.publishCreate(obj.toJSON());
         res.redirect('/');
       }
     });
+
+
   },
 
   leave: function (req, res) {

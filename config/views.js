@@ -68,5 +68,4 @@ module.exports.views = {
   // But you might override that in some of your controllers with:
   // layout: 'layouts/internal'
 
-
 };

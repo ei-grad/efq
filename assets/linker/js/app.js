@@ -1,66 +1,28 @@
-/**
- * app.js
- *
- * This file contains some conventional defaults for working with Socket.io + Sails.
- * It is designed to get you up and running fast, but is by no means anything special.
- *
- * Feel free to change none, some, or ALL of this file to fit your needs!
- */
-
-
 (function (io) {
 
   // as soon as this file is loaded, connect automatically, 
   var socket = io.connect();
-  if (typeof console !== 'undefined') {
-    log('Connecting to Sails.js...');
-  }
+
+  log('Connecting to Sails.js...');
 
   socket.on('connect', function socketConnected() {
-
-    // Listen for Comet messages from Sails
-    socket.on('message', function messageReceived(message) {
-
-      ///////////////////////////////////////////////////////////
-      // Replace the following with your own custom logic
-      // to run when a new message arrives from the Sails.js
-      // server.
-      ///////////////////////////////////////////////////////////
-      log('New comet message received :: ', message);
-      //////////////////////////////////////////////////////
-
-    });
-
 
     ///////////////////////////////////////////////////////////
     // Here's where you'll want to add any custom logic for
     // when the browser establishes its socket connection to 
     // the Sails.js server.
     ///////////////////////////////////////////////////////////
-    log(
-        'Socket is now connected and globally accessible as `socket`.\n' + 
-        'e.g. to send a GET request to Sails, try \n' + 
-        '`socket.get("/", function (response) ' +
-        '{ console.log(response); })`'
-    );
+    log('Connected!');
     ///////////////////////////////////////////////////////////
 
-
   });
-
 
   // Expose connected `socket` instance globally so that it's easy
   // to experiment with from the browser console while prototyping.
   window.socket = socket;
 
 
-  // Simple log function to keep the example simple
-  function log () {
-    if (typeof console !== 'undefined') {
-      console.log.apply(console, arguments);
-    }
-  }
-  
+
 
 })(
 
@@ -71,10 +33,51 @@
 );
 
 
+function log () {
+  if (typeof console !== 'undefined') {
+    console.log.apply(console, arguments);
+  }
+}
+
+
+var convertToDate = {
+  create: function(options) { 
+    return ko.observable(moment(options.data));
+  }
+};
+
+
+var now = ko.observable(moment());
+setInterval(function() { self.now(moment()); }, 60 * 1000);
+
+
+function PilotInQueueModel(data) {
+  var self = this;
+  ko.mapping.fromJS(data, {
+    key: function(data) { return ko.utils.unwrapObservable(data.id); },
+    createdAt: convertToDate,
+    updateAt: convertToDate,
+  }, self);
+  self.fromNow = ko.computed(function() {
+    return moment(self.createdAt()).from(now());
+  });
+  log("Created new PilotInQueueModel:", self);
+}
+
+
 function QueueViewModel() {
   var self = this;
+
+  /* ===============
+   * Data definition
+   * =============== */
+
+  // use special observable
+
   self.fitting = ko.observable();
-  self.pilots = ko.observableArray([]);
+  self.pilots = ko.mapping.fromJS([], {
+    create: function(options) { return new PilotInQueueModel(options.data); }
+  });
   self.messages = ko.observableArray([]);
   self.sortedPilots = ko.computed(function () {
     return self.pilots().sort(function(a, b) {
@@ -84,11 +87,60 @@ function QueueViewModel() {
 
   // Load data
   socket.get("/pilotinqueue", function(data) {
-    console.log(data);
-    ko.mapping.fromJS(data, {
-      key: function(data) { return ko.utils.unwrapObservable(data.id); }
-    }, self.pilots);
+    log("Pilots loaded:", data);
+    ko.mapping.fromJS(data, {}, self.pilots);
   });
+
+  var message_handlers = {
+    pilotinqueue: {
+      create: function (e) { self.pilots.mappedCreate(e.data); },
+      destroy: function (e) { self.pilots.mappedRemove({id: e.id}); },
+    }
+  };
+
+  // Listen for Comet messages from Sails
+  socket.on('message', function messageReceived(e) {
+    log('New event received :: ', e);
+    try {
+      message_handlers[e.model][e.verb](e);
+    } catch (err) {
+      log("Error:", err);
+    }
+  });
+
+}
+
+ko.bindingHandlers.fitting = {
+  update: function(element, valueAccessor, allBindings, viewModel, bindingContext) {
+    var data = ko.unwrap(valueAccessor());
+    var fitting = ko.unwrap(data.fitting);
+    var el = $(element);
+    if (fitting) {
+      var a = el.find('a');
+      if (a[0] === undefined) {
+        a = $('<a>').appendTo(el);
+      }
+      el = a;
+      el.attr('href', 'javascript:CCPEVE.showFitting("' + fitting + '");');
+    }
+    el.text(ko.unwrap(data.shipname));
+  }
+};
+
+ko.bindingHandlers.solarsystem = {
+  update: function(element, valueAccessor, allBindings, viewModel, bindingContext) {
+    var data = ko.unwrap(valueAccessor());
+    var name = ko.unwrap(data.solarsystemname);
+    var id = ko.unwrap(data.solarsystemid);
+    var el = $(element);
+    var a = el.find('a');
+    if (a[0] === undefined) {
+      a = $('<a>').appendTo(el);
+    }
+    el = a;
+    el.attr('href', 'javascript:CCPEVE.showInfo(5, ' + id + ');');
+    el.text(name);
+  }
 }
 
 ko.applyBindings(new QueueViewModel());
