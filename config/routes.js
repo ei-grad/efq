@@ -29,18 +29,17 @@
 module.exports.routes = {
 
 
-  '/*': function(req, res, next) {sails.log.verbose(req.method, req.url); next();},
-
   // By default, your root route (aka home page) points to a view
   // located at `views/home/index.ejs`
   // 
   // (This would also work if you had a file at: `/views/home.ejs`)
   '/': {
-    view: 'home/index'
+    controller: 'HomeController',
+    action: 'index',
   },
 
   '/trust': {
-    controller: 'trustController',
+    controller: 'TrustController',
     action: 'index',
   },
 

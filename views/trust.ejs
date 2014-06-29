@@ -1,4 +1,14 @@
+<div id="igb-required" style="display: none;">
+  <%= __( "This action is only available from Eve Online in-game web browser." ) %>
+  <a onclick="javascript:window.history.back()" href="javascript:void(0)"><%= __( "Go back" ) %></a>
+</div>
+
+
 <script>
-setTimeout(function(){document.location.reload()}, 2000);
-CCPEVE.requestTrust('http://<%- host %>');
+if (window.CPPEVE) {
+  setTimeout(function(){document.location.reload()}, 2000);
+  CCPEVE.requestTrust('http://<%- host %>');
+} else {
+  document.getElementById('igb-required').style.display = 'block';
+}
 </script>

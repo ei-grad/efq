@@ -24,7 +24,6 @@
       <div class="navbar-collapse collapse">
         <ul class="nav navbar-nav">
           <li><a href="http://raisa.su/"><%= __('Home') %></a></li>
-          <li class="active"><a href="/"><%= __('EFQ') %></a></li>
           <li><a href="http://raisa.su/rules"><%= __('Rules') %></a></li>
           <li><a href="http://raisa.su/fits"><%= __('Fits') %></a></li>
           <li><a href="http://raisa.su/srp"><%= __('SRP') %></a></li>
@@ -41,11 +40,11 @@
               <li><a href="/auth/logout"><%= __('Logout') %></a></li>
             </ul>
           </li>
-          <% } else if (session.trusted === "Yes" ) { %>
+          <% } else  { %>
           <li class="dropdown">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><%= charname %> <b class="caret"></b></a>
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><%= eve.charname || __('Guest') %> <b class="caret"></b></a>
             <ul class="dropdown-menu">
-              <li><a href="/login"><%= __('Authenticate') %></a></li>
+              <li><a href="/auth/login"><%= __('Authenticate') %></a></li>
             </ul>
           </li>
           <% } %>
@@ -78,5 +77,8 @@
     <script src="/linker/js/app.js"></script>
     <script src="/linker/js/placeholder.js"></script>
     <!--SCRIPTS END-->
+
+    <%- blocks.localScripts %>
+
   </body>
 </html>

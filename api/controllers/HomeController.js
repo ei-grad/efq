@@ -1,5 +1,5 @@
 /**
- * TrustController
+ * HomeController
  *
  * @module      :: Controller
  * @description	:: A set of functions called `actions`.
@@ -16,25 +16,5 @@
  */
 
 module.exports = {
-    
-  'index': function (req, res) {
-    if (req.headers.eve_trusted !== 'Yes') {
-      res.view('trust', {
-        host: req.headers.host,
-      });
-    } else {
-      var url = req.session.trust_return_url;
-      delete req.session.trust_return_url;
-      res.redirect(url || '/');
-    }
-  },
-
-
-  /**
-   * Overrides for the settings in `config/controllers.js`
-   * (specific to TrustController)
-   */
-  _config: {}
-
-  
+  index: function(req, res) { res.view('home/index'); },
 };

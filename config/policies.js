@@ -22,7 +22,11 @@ module.exports.policies = {
   ],
 
   QueueController: {
-    join: 'requireTrust',
+    join: ['eveHeaders', 'requireTrust'],
+  },
+
+  AuthController: {
+    login: ['eveHeaders', 'requireTrust'],
   }
 
   /*

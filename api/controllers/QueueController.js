@@ -33,29 +33,35 @@ module.exports = {
 
     obj.fitting = match[1];
 
+    console.log("Updating #" + obj.id + " to ", obj);
+
     // XXX: check req.session.charname!
 
-    PilotInQueue.findOne({charid: obj.charid}).done(function (err, obj) {
-      if (err) {
-        PilotInQueue.create(obj)
-          .done(function(err, obj) {
-            if (err) {
-              res.send(err, 500);
-            } else {
-              PilotInQueue.publishCreate(obj.toJSON());
-              res.redirect('/');
-            }
-          });
+    PilotInQueue.findOne({charid: obj.charid}, function (err, found) {
+      console.log('PilotInQueue.findOne: ', err, found);
+      if (found === undefined) {
+        PilotInQueue.create(obj, function(err, created) {
+          console.log('PilotInQueue.create: ', err, created);
+          if (err) {
+            console.log(err);
+            res.send(err, 500);
+          } else {
+            PilotInQueue.publishCreate(created.toJSON());
+            res.redirect('/');
+          }
+        });
       } else {
-        PilotInQueue.update({charid: obj.charid}, obj)
-          .done(function(err) {
-            if (err) {
-              res.send(err, 500);
-            } else {
-              PilotInQueue.publishUpdate(obj.id, obj.toJSON());
-              res.redirect('/');
-            }
-          });
+        PilotInQueue.update({charid: obj.charid}, obj, function(err, updated) {
+          console.log('PilotInQueue.update: ', err, updated);
+          if (err) {
+            console.log(err);
+            res.send(err, 500);
+          } else {
+            console.log(updated[0]);
+            PilotInQueue.publishUpdate(updated[0].id, );
+            res.redirect('/');
+          }
+        });
       }
     });
 

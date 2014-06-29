@@ -17,10 +17,6 @@
 
 module.exports = {
     
-  login: function () {
-    res.send("Not implemented yet", 500);
-  },
-
   logout: function (req, res) {
     if (req.session.authenticated) {
       req.session.authenticated = false;
@@ -39,3 +35,16 @@ module.exports = {
 
   
 };
+
+if(process.env.EFQ_AUTH_USE_EVE_CHARID) {
+  module.exports.login = function () {
+    if (res.locals.eve.trusted === 'Yes') {
+      req.session.authenticated = true;
+      if (!req.session.chars) req.session.chars = [];
+      req.session.chars.push(res.locals.eve.charid);
+      res.redirect('/');
+    } else {
+      res.redirect('/trust');
+    }
+  };
+}
