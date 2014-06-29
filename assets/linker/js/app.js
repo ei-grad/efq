@@ -71,22 +71,24 @@
 );
 
 
-angular.module('efq', ['ngRoute']).config(['$routeProvider', '$httpProvider', function ($routeProvider, $httpProvider) {
-  $routeProvider.when('/', {
-    templateUrl: 'queue',
-    controller: 'QueueController',
+function QueueViewModel() {
+  var self = this;
+  self.fitting = ko.observable();
+  self.pilots = ko.observableArray([]);
+  self.messages = ko.observableArray([]);
+  self.sortedPilots = ko.computed(function () {
+    return self.pilots().sort(function(a, b) {
+      return a.createdAt - b.createdAt;
+    });
   });
-  $httpProvider.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
-}]).filter('character', ['$sce', function($sce) {
-  return function(character) {
-    var code = '<a class="igb" href="javascript:CCPEVE.showInfo(1377, ' + character.charid + ')">' + character.charname.replace(" ", "&nbsp;") + '</a> ';
-    if (character.fitting) {
-      code = code + '- <a class="igb" href="javascript:CCPEVE.showFitting(\'' + character.fitting + '\')">' + character.shipname + '</a>';
-    } else if (character.ship) {
-      code = code + ' - ' + character.ship;
-    } else {
-      code = code + ' - ' + __("no fitting");
-    }
-    return $sce.trustAsHtml(code);
-  };
-}]);
+
+  // Load data
+  socket.get("/pilotinqueue", function(data) {
+    console.log(data);
+    ko.mapping.fromJS(data, {
+      key: function(data) { return ko.utils.unwrapObservable(data.id); }
+    }, self.pilots);
+  });
+}
+
+ko.applyBindings(new QueueViewModel());

@@ -52,7 +52,7 @@ module.exports = function (grunt) {
     // then beef it up with some convenience logic for talking to Sails.js
     'linker/js/deps/sails.io.js',
 
-    'linker/js/deps/angular.js',
+    'linker/js/deps/knockout.js',
 
     'linker/js/deps/*.js',
 

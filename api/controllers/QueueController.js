@@ -27,13 +27,13 @@ module.exports = {
   join: function (req, res) {
 
     var match = /fitting:([0-9:;]+)/g.exec(req.param('fitting'));
-    if (match === null || match.length != 2) {
+    if (match === null || match.length != 2 || match[1].length === 0) {
       req.session.messages = [ res.i18n("Bad fitting!") ];
       res.redirect('/');
       return;
     }
 
-    var obj = _.clone(req.locals.eve);
+    var obj = _.clone(res.locals.eve);
 
     obj.fitting = match[1];
     obj.fleet = req.param('fleet');
@@ -42,11 +42,11 @@ module.exports = {
     console.log('Adding "' + obj.charname + '" to queue.', obj);
 
     PilotInQueue.update({
-      charid: req.locals.eve.charid,
+      charid: res.locals.eve.charid,
 
     });
 
-    PilotInQueue.create(req.locals.eve, function(err, obj) {
+    PilotInQueue.create(res.locals.eve, function(err, obj) {
       if (err) {
         res.send(err, 500);
       } else {

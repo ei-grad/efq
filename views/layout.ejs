@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html ng-app="efq">
+<html>
   <head>
     <title><%- title %></title>
 
@@ -53,12 +53,12 @@
       </div><!--/.nav-collapse -->
     </div>
 
-    <div class="container">
+    <div class="container-fluid">
 
-      <div ng-controller="MessagesController">
-        <div class="alert alert-{{! msg.cls }}" ng-repeat="msg in messages">
-            <button type="button" class="close" ng-click='readMessage(msg)'>&times;</button>
-            <p ng-bind="msg.content"></p>
+      <div data-bind="foreach: messages">
+        <div class="alert" data-bind="css: 'alert-' + cls">
+            <button type="button" class="close">&times;</button>
+            <p data-bind="content"></p>
         </div>
       </div>
 
@@ -69,11 +69,9 @@
     <!--SCRIPTS-->
     <script src="/linker/js/deps/socket.io.js"></script>
     <script src="/linker/js/deps/sails.io.js"></script>
-    <script src="/linker/js/deps/angular.js"></script>
-    <script src="/linker/js/deps/angular-route.js"></script>
+    <script src="/linker/js/deps/knockout.js"></script>
+    <script src="/linker/js/deps/knockout-mapping.js"></script>
     <script src="/linker/js/app.js"></script>
-    <script src="/linker/js/messagesController.js"></script>
-    <script src="/linker/js/queueController.js"></script>
     <!--SCRIPTS END-->
   </body>
 </html>
