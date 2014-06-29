@@ -16,7 +16,10 @@ module.exports.policies = {
 
   // Default policy for all controllers and actions
   // (`true` allows public access) 
-  '*': 'overrideLayout',
+  '*': [
+    'overrideLayout',
+    'eveHeaders',
+  ],
 
   QueueController: {
     join: 'requireTrust',

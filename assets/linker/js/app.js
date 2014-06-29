@@ -123,7 +123,7 @@ ko.bindingHandlers.fitting = {
       el = a;
       el.attr('href', 'javascript:CCPEVE.showFitting("' + fitting + '");');
     }
-    el.text(ko.unwrap(data.shipname));
+    el.text(ko.unwrap(data.shiptypename));
   }
 };
 

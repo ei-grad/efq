@@ -20,10 +20,6 @@ var i18n = require('i18n');
 
 module.exports = {
 
-  index: function (req, res) {
-    res.view('queue/index');
-  },
-    
   join: function (req, res) {
 
     var match = /fitting:([0-9:;]+)/g.exec(req.param('fitting'));
@@ -37,25 +33,44 @@ module.exports = {
 
     obj.fitting = match[1];
 
-    // XXX: check charname!!!
-    //PilotInQueue.update({
-    //  charid: res.locals.eve.charid,
-    //});
+    // XXX: check req.session.charname!
 
-    PilotInQueue.create(obj, function(err, obj) {
+    PilotInQueue.findOne({charid: obj.charid}).done(function (err, obj) {
       if (err) {
-        res.send(err, 500);
+        PilotInQueue.create(obj)
+          .done(function(err, obj) {
+            if (err) {
+              res.send(err, 500);
+            } else {
+              PilotInQueue.publishCreate(obj.toJSON());
+              res.redirect('/');
+            }
+          });
       } else {
-        PilotInQueue.publishCreate(obj.toJSON());
-        res.redirect('/');
+        PilotInQueue.update({charid: obj.charid}, obj)
+          .done(function(err) {
+            if (err) {
+              res.send(err, 500);
+            } else {
+              PilotInQueue.publishUpdate(obj.id, obj.toJSON());
+              res.redirect('/');
+            }
+          });
       }
     });
-
 
   },
 
   leave: function (req, res) {
+    res.send('Not Implemented Yet', 500);
+  },
 
-  }
+  invite: function (req, res) {
+    res.send('Not Implemented Yet', 500);
+  },
+
+  kick : function (req, res) {
+    res.send('Not Implemented Yet', 500);
+  },
 
 };

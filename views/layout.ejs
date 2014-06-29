@@ -34,11 +34,11 @@
         <ul class="nav navbar-nav navbar-right">
           <% if (session.authenticated) { %>
           <li class="dropdown">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><%= character %> <b class="caret"></b></a>
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><%= eve.charname %> <b class="caret"></b></a>
             <ul class="dropdown-menu">
-              <% if (character.is_admin) { %><li><a href="/admin"><%= __('Admin') %></a></li><% } %>
+              <% if (session.is_admin) { %><li><a href="/admin"><%= __('Admin') %></a></li><% } %>
               <li><a href="/fit"><%= __('Fit') %></a></li>
-              <li><a href="/logout"><%= __('Logout') %></a></li>
+              <li><a href="/auth/logout"><%= __('Logout') %></a></li>
             </ul>
           </li>
           <% } else if (session.trusted === "Yes" ) { %>
@@ -72,6 +72,7 @@
     <script src="/linker/js/deps/knockout.js"></script>
     <script src="/linker/js/deps/jquery.js"></script>
     <script src="/linker/js/deps/bootstrap.js"></script>
+    <script src="/linker/js/deps/jquery.cookie.js"></script>
     <script src="/linker/js/deps/knockout-mapping.js"></script>
     <script src="/linker/js/deps/moment-with-langs.js"></script>
     <script src="/linker/js/app.js"></script>
