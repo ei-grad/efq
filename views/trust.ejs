@@ -1,14 +1,21 @@
-<div id="igb-required" style="display: none;">
+<div class="center lead" id="igb-required">
   <%= __( "This action is only available from Eve Online in-game web browser." ) %>
+</div>
+
+<div class="center lead" id="trust-required">
+  <%= __( "This action require this site to be trusted in your client." ) %>
+</div>
+
+<div class="center lead">
   <a onclick="javascript:window.history.back()" href="javascript:void(0)"><%= __( "Go back" ) %></a>
 </div>
 
-
 <script>
-if (window.CPPEVE) {
+if (window.CCPEVE) {
+  document.getElementById('igb-required').style.display = 'none';
   setTimeout(function(){document.location.reload()}, 2000);
   CCPEVE.requestTrust('http://<%- host %>');
 } else {
-  document.getElementById('igb-required').style.display = 'block';
+  document.getElementById('trust-required').style.display = 'none';
 }
 </script>

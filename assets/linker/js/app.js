@@ -67,16 +67,13 @@ var efq = {
     Scimitar: 11978,
   },
 
-  colors: {
-    Vindicator: 'shipcolor-dps-close',
-    Machariel: 'shipcolor-dps-snipe',
-    Nightmare: 'shipcolor-dps-snipe',
-    Basilisc:  'shipcolor-logi',
-    Scimitar: 'shipcolor-logi',
-  },
-
 };
 
+
+
+/* ======
+ * Models
+ * ====== */
 
 function PilotInQueueModel(data) {
   var self = this;
@@ -101,12 +98,16 @@ function QueueViewModel() {
   var self = this;
 
 
-
   /* ===============
    * Data definition
    * =============== */
 
   self.fitting = ko.observable();
+  self.info = ko.mapping.fromJS({
+    trusted: true,
+    authenticated: true,
+    state: 'guest'
+  });
   self.pilots = ko.mapping.fromJS([], {
     create: function(options) {
       return new PilotInQueueModel(options.data);
@@ -115,11 +116,23 @@ function QueueViewModel() {
   self.messages = ko.observableArray([]);
 
 
-
   /* ===================
    * Computed attributes
    * =================== */
 
+  self.trusted = ko.computed(function () {
+    console.log(self.info);
+    return self.info.trusted();
+  });
+  self.guest = ko.computed(function () {
+    return self.info.state() === 'guest';
+  });
+  self.spectrator = ko.computed(function () {
+    return self.info.state() === 'spectrator';
+  });
+  self.anticipant = ko.computed(function () {
+    return self.info.state() === 'anticipant';
+  });
   self.sortedPilots = ko.computed(function () {
     return self.pilots().sort(efq.sortByCreatedAt);
   });
@@ -135,7 +148,6 @@ function QueueViewModel() {
   setInterval(function() { efq.now(moment()); }, 60 * 1000);
 
 
-
   /* =========
    * Load data 
    * ========= */
@@ -144,7 +156,9 @@ function QueueViewModel() {
     log("Pilots loaded:", data);
     ko.mapping.fromJS(data, {}, self.pilots);
   });
-
+  $.getJSON('/queue/info', function(data) {
+    ko.mapping.fromJS(data, {}, self.info);
+  });
 
 
   /* ================
@@ -166,8 +180,6 @@ function QueueViewModel() {
       log("Error:", err);
     }
   });
-
-
 
 }
 
@@ -211,7 +223,6 @@ ko.bindingHandlers.fitting = {
   }
 };
 
-
 ko.bindingHandlers.solarsystem = {
   update: function(element, valueAccessor) {
     var data = ko.unwrap(valueAccessor());
@@ -236,6 +247,23 @@ ko.bindingHandlers.classByShipType = {
     el.removeClass(efq.colors[el.attr('data-shiptype')]);
     el.attr('data-shiptype', shipType);
     el.addClass(efq.colors[shipType]);
+  }
+};
+
+
+ko.bindingHandlers.show = {
+  init: function(element) { $(element).hide(); },
+  update: function(element, valueAccessor) {
+    if (ko.unwrap(valueAccessor())) $(element).slideDown();
+    else $(element).slideUp();
+  }
+};
+
+ko.bindingHandlers.hide = {
+  init: function(element) { $(element).hide(); },
+  update: function(element, valueAccessor) {
+    if (ko.unwrap(valueAccessor())) $(element).slideUp();
+    else $(element).slideDown();
   }
 };
 

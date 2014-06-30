@@ -37,7 +37,7 @@ module.exports = {
 };
 
 if(process.env.EFQ_AUTH_USE_EVE_CHARID) {
-  module.exports.login = function () {
+  module.exports.login = function (req, res) {
     if (res.locals.eve.trusted === 'Yes') {
       req.session.authenticated = true;
       if (!req.session.chars) req.session.chars = [];

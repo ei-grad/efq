@@ -1,50 +1,74 @@
-<div class="row-fluid">
+<form data-bind="show: spectrator" method="POST" role="form" action="/queue/join">
 
-  <form method="POST" role="form" action="/queue/join">
+  <input type='hidden' name='_csrf' value='<%= _csrf %>' />
 
-    <input type='hidden' name='_csrf' value='<%= _csrf %>'>
+  <div class="form-group">
+    <label for="fitting" class="control-label"><%= __("Fitting") %></label>
+    <textarea class="form-control" rows="3" name="fitting" id="fitting"
+              data-bind="value: fitting, valueUpdate: 'input'"></textarea>
+    <span class="help-block"><%=
+__( 'Send your fit to any chat channel and copy/paste your message from there to this text area. Result should contain a «fitting:...» substring in it.' ) %></span>
+  </div>
 
-    <div class="form-group">
-      <label for="fitting" class="control-label"><%= __("Fitting") %></label>
-      <textarea class="form-control" rows="3" name="fitting" id="fitting"
-                data-bind="value: fitting" placeholder="<%=
-__('Send your fit to any chat channel and copy/paste your message from there to this text area. Result should contain a «fitting:...» substring in it.')
-                %>"></textarea>
-    </div>
+  <div class="form-group">
+      <button class="btn btn-block btn-default"
+              data-bind="show: fitting, css: {disabled: !fitting()}"><%= __("Join") %></button>
+  </div>
 
-    <div class="form-group">
-        <button class="btn btn-block btn-default"
-                data-bind="enable: fitting"><%= __("Join") %></button>
-    </div>
+</form>
 
-  </form>
 
+<div class="center lead" data-bind="hide: info.trusted()">
+  <%= __( "To join the queue you have to add this site to trusted." ) %>
+  <a href="/trust"><%= __( "Add" ) %></a>
 </div>
 
-<h4><%= __('Queue:') %></h4>
+
+<div class="center lead" data-bind="hide: info.authenticated()">
+  <%= __( "To join the queue you have to authenticated." ) %>
+  <a href="/auth/login"><%= __( "Authenticate" ) %></a>
+</div>
+
+
+<form data-bind="show: anticipant" method="POST" role="form" action="/queue/leave">
+  <input type='hidden' name='_csrf' value='<%= _csrf %>' />
+  <button class="btn btn-xs btn-default"><%= __( "Leave" ) %></button>
+</form>
+
+<div class="btn-group btn-group-justified table-filter">
+  <a data-toggle="button" class="btn btn-xs btn-default Vindicator"><%= __('Vindicator') %></a>
+  <a data-toggle="button" class="btn btn-xs btn-default Machariel"><%= __('Machariel') %></a>
+  <a data-toggle="button" class="btn btn-xs btn-default Nightmare"><%= __('Nightmare') %></a>
+  <a data-toggle="button" class="btn btn-xs btn-default Basilisc"><%= __('Basilisc') %></a>
+  <a data-toggle="button" class="btn btn-xs btn-default Scimitar"><%= __('Scimitar') %></a>
+  <a data-toggle="button" class="btn btn-xs btn-default"><%= __('Other') %></a>
+</div>
+
 
 <table class="table table-condensed">
   <thead>
     <tr>
-      <th><%= __( 'Actions' ) %></th>
+      <th class="actions"><%= __( 'Actions' ) %></th>
       <th><%= __( 'Character' ) %></th>
       <th><%= __( 'Fitting' ) %></th>
       <th><%= __( 'Joined' ) %></th>
-      <th><%= __( 'Current location' ) %></th>
+      <th><%= __( 'Location' ) %></th>
     </tr>
   </thead>
   <tbody data-bind="foreach: sortedPilots">
-    <tr data-bind="classByShipType: shiptypename">
+    <tr data-bind="css: shiptypename">
       <td>
-        <button class="btn btn-xs btn-default">
-          <span class="glyphicon glyphicon-plus"></span>
-        </button>
-        <button class="btn btn-xs btn-default">
-          <span class="glyphicon glyphicon-ok"></span>
-        </button>
-        <button class="btn btn-xs btn-default">
-          <span class="glyphicon glyphicon-remove"></span>
-        </button>
+        <div class="btn-group btn-group-justified">
+          <a class="btn btn-xs btn-default">
+            <span class="glyphicon glyphicon-plus"></span>
+          </a>
+          <a class="btn btn-xs btn-default">
+            <span class="glyphicon glyphicon-ok"></span>
+          </a>
+          <a class="btn btn-xs btn-default">
+            <span class="glyphicon glyphicon-remove"></span>
+          </a>
+        </div>
       </td>
       <td data-bind="character: $data"></td>
       <td data-bind="fitting: $data"></td>

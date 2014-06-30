@@ -1,4 +1,4 @@
-if (window.CCPEVE) {
+/*if (window.CCPEVE) {
   $('[placeholder]').focus(function() {
     var input = $(this);
     if (input.val() == input.attr('placeholder')) {
@@ -20,4 +20,4 @@ if (window.CCPEVE) {
     }
     });
   });
-}
+}*/
