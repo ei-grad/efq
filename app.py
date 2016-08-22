@@ -34,6 +34,13 @@ login_manager.init_app(app)
 login_manager.login_view = "auth_login"
 
 
+http = requests.Session()
+user_agent = 'EFQ (https://efq.ei-grad.ru; %s)' % (
+    http.headers['User-Agent']
+)
+http.headers['User-Agent'] = user_agent
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return Character.query.get(user_id)
@@ -48,6 +55,8 @@ class Character(UserMixin, db.Model):
 class Fleet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     fleet_type = db.Column(db.String(2))
+    system_id = db.Column(db.Integer())
+    system_name = db.Column(db.String(32))
     is_active = db.Column(db.Boolean())
     commander_id = db.Column(db.Integer, db.ForeignKey(Character.id), index=True)
 
@@ -146,7 +155,7 @@ def auth_callback():
 
     code = request.args.get('code')
 
-    resp = requests.post(
+    resp = http.post(
         'https://login.eveonline.com/oauth/token',
         auth=HTTPBasicAuth(env['EFQ_CLIENT_ID'], env['EFQ_CLIENT_SECRET']),
         params={
@@ -160,7 +169,7 @@ def auth_callback():
 
     token = resp.json()
 
-    resp = requests.get(
+    resp = http.get(
         'https://login.eveonline.com/oauth/verify',
         headers={'Authorization': 'Bearer %s' % token['access_token']},
     )
@@ -249,6 +258,26 @@ def get_state(fleet_id, character):
             character=current_user,
         )
     return state
+
+
+@app.route("/incursions/")
+def incursions():
+
+    items = http.get("https://crest-tq.eveonline.com/incursions/").json()['items']
+
+    for i in items:
+        ss = http.get(i['stagingSolarSystem']['href']).json()['securityStatus']
+        i['securityStatus'] = ss
+        if ss <= 0:
+            i['css_tr_class'] = 'danger'
+        elif ss <= 0.5:
+            i['css_tr_class'] = 'warning'
+        else:
+            i['css_tr_class'] = 'success'
+
+    items.sort(key=lambda x: -x['securityStatus'])
+
+    return render_template("incursions.html", items=items)
 
 
 def transition(state, to_state, comment=None):

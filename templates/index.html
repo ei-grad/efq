@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
 {% macro render_fleet(fleet) %}
-<a href="{{ url_for('fleet', fleet_id=fleet.id) }}">{{ fleet.commander.name }}</a>
+<a href="{{ url_for('fleet', fleet_id=fleet.id) }}">{{ fleet.system_name }} - {{ fleet.commander.name }}</a>
 {% endmacro %}
 
-{% block body %}
+{% block content %}
 
 <h3>HQ Fleets:</h3>
 {% for i in hq_fleets %}
