@@ -97,6 +97,12 @@ class Character(UserMixin, db.Model):
             headers={'Authorization': 'Bearer %s' % self.get_access_token()},
         ).json().get('solarSystem')
 
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return '<%s #%s (%s)>' % (self.__class__.__name__, self.id, self)
+
 
 class Fleet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
