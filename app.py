@@ -115,8 +115,8 @@ def auth_login():
         'https://login.eveonline.com/oauth/authorize/?' + urlencode({
             'response_type':
             'code',
-            'redirect_uri': 'https://efq.ei-grad.ru/auth/callback',
-            'client_id': '6b8ceb3eac654ab0a682b3b3adc4d735',
+            'redirect_uri': url_for('auth_callback', _external=True),
+            'client_id': env['EFQ_CLIENT_ID'],
             'scope': ' '.join([
                 'characterLocationRead',
                 'characterSkillsRead',
