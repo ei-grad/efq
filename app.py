@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from os import environ as env
 from urllib.parse import urlencode, urlparse, urljoin
 import binascii
@@ -17,8 +17,12 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, current_user
 from flask_login import login_required
 
+from werkzeug.contrib.fixers import ProxyFix
+
 
 app = Flask(__name__)
+
+app.wsgi_app = ProxyFix(app.wsgi_app)
 
 app.config['SECRET_KEY'] = env['SECRET_KEY']
 
@@ -46,18 +50,60 @@ def load_user(user_id):
     return Character.query.get(user_id)
 
 
+class NoValidAccessToken(Exception):
+    pass
+
+
 class Character(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True)
-    is_active = db.Column(db.Boolean(), default=True)
+    is_active = db.Column(db.Boolean, default=True)
+    access_token = db.Column(db.String(255))
+    access_token_expires_on = db.Column(db.DateTime)
+    refresh_token = db.Column(db.String(255))
+
+    def get_access_token(self):
+
+        if self.access_token_expires_on > datetime.now():
+
+            resp = http.post(
+                'https://login.eveonline.com/oauth/token',
+                auth=HTTPBasicAuth(env['EFQ_CLIENT_ID'],
+                                   env['EFQ_CLIENT_SECRET']),
+                params={
+                    'grant_type': 'refresh_token',
+                    'refresh_token': self.refresh_token,
+                }
+            )
+            if resp.status_code != 200:
+                app.logger.error('OAuth refresh_token response: %s %s',
+                                 resp, resp.json())
+                raise NoValidAccessToken()
+
+            token = resp.json()
+
+            self.access_token = token['access_token']
+
+            delta = timedelta(seconds=token['expires_in'] - 1)
+            self.access_token_expires_on = datetime.now() + delta
+
+            db.session.add(self)
+
+        return self.access_token
+
+    def get_location(self):
+        return http.get(
+            'https://crest-tq.eveonline.com/characters/%s/location/' % self.id,
+            headers={'Authorization': 'Bearer %s' % self.get_access_token()},
+        ).json().get('solarSystem')
 
 
 class Fleet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     fleet_type = db.Column(db.String(2))
-    system_id = db.Column(db.Integer())
+    system_id = db.Column(db.Integer)
     system_name = db.Column(db.String(32))
-    is_active = db.Column(db.Boolean())
+    is_active = db.Column(db.Boolean)
     commander_id = db.Column(db.Integer, db.ForeignKey(Character.id), index=True)
 
     commander = db.relationship(Character, lazy='joined')
@@ -69,7 +115,7 @@ class Journal(db.Model):
     fleet_id = db.Column(db.Integer, db.ForeignKey(Fleet.id), index=True)
     character_id = db.Column(db.Integer, db.ForeignKey(Character.id), index=True)
     state = db.Column(db.String(16))
-    comment = db.Column(db.Text())
+    comment = db.Column(db.Text)
 
     fleet = db.relationship(Fleet)
     character = db.relationship(Character)
@@ -168,6 +214,8 @@ def auth_callback():
         abort(400, "Can't get OAuth token for provided code")
 
     token = resp.json()
+    expires_on = datetime.now() + timedelta(seconds=token['expires_in'] - 1)
+    app.logger.info('OAuth token response: %s %s', resp, token)
 
     resp = http.get(
         'https://login.eveonline.com/oauth/verify',
@@ -187,8 +235,12 @@ def auth_callback():
             id=info['CharacterID'],
             name=info['CharacterName'],
         )
-        db.session.add(user)
-        db.session.commit()
+
+    user.access_token = token['access_token']
+    user.access_token_expires_on = expires_on
+    user.refresh_token = token['refresh_token']
+    db.session.add(user)
+    db.session.commit()
 
     login_user(user)
 
