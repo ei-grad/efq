@@ -20,7 +20,12 @@ from flask_login import login_required
 
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = env.get('SQLALCHEMY_DATABASE_URI', 'sqlite://efq.sqlite3')
+app.config['SECRET_KEY'] = env['SECRET_KEY']
+
+app.config['SQLALCHEMY_DATABASE_URI'] = env.get(
+    'SQLALCHEMY_DATABASE_URI', 'sqlite:///efq.sqlite3'
+)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
@@ -37,7 +42,7 @@ def load_user(user_id):
 class Character(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True)
-    is_active = db.Column(db.Boolean())
+    is_active = db.Column(db.Boolean(), default=True)
 
 
 class Fleet(db.Model):
@@ -106,7 +111,7 @@ def set_return_url(return_url):
 @app.route("/auth/login")
 def auth_login():
 
-    session['oauth_state'] = binascii.b2a_hex(os.urandom(8))
+    session['oauth_state'] = binascii.b2a_hex(os.urandom(8)).decode('ascii')
 
     if 'return_url' in request.args:
         set_return_url(request.args['return_url'])
@@ -115,7 +120,7 @@ def auth_login():
         'https://login.eveonline.com/oauth/authorize/?' + urlencode({
             'response_type':
             'code',
-            'redirect_uri': url_for('auth_callback', _external=True),
+            'redirect_uri': url_for('auth_callback', _external=True, _scheme='https'),
             'client_id': env['EFQ_CLIENT_ID'],
             'scope': ' '.join([
                 'characterLocationRead',
@@ -141,19 +146,43 @@ def auth_callback():
 
     code = request.args.get('code')
 
-    token = requests.post(
+    resp = requests.post(
         'https://login.eveonline.com/oauth/token',
         auth=HTTPBasicAuth(env['EFQ_CLIENT_ID'], env['EFQ_CLIENT_SECRET']),
         params={
             'grant_type': 'authorization_code',
             'code': code,
         }
-    ).json()
-    info = requests.post(
+    )
+    if resp.status_code != 200:
+        app.logger.error('OAuth token response: %s %s', resp, resp.json())
+        abort(400, "Can't get OAuth token for provided code")
+
+    token = resp.json()
+
+    resp = requests.get(
         'https://login.eveonline.com/oauth/verify',
         headers={'Authorization': 'Bearer %s' % token['access_token']},
-    ).json()
-    login_user(info['CharacterID'])
+    )
+    if resp.status_code != 200:
+        app.logger.error('OAuth verify response: %s %s', resp, resp.json())
+        abort(400, "Can't verify acquired OAuth access_token")
+
+    info = resp.json()
+
+    app.logger.info('OAuth verify response: %s', info)
+
+    user = Character.query.get(info['CharacterID'])
+    if user is None:
+        user = Character(
+            id=info['CharacterID'],
+            name=info['CharacterName'],
+        )
+        db.session.add(user)
+        db.session.commit()
+
+    login_user(user)
+
     return redirect(session.pop("return_url", "/"))
 
 
@@ -225,12 +254,12 @@ def get_state(fleet_id, character):
 def transition(state, to_state, comment=None):
     state.timestamp = datetime.now()
     state.state = to_state
-    db.add(state)
-    db.add(Journal(
+    db.session.add(state)
+    db.session.add(Journal(
         fleet=state.fleet,
         character=state.character,
         timestamp=state.timestamp,
         state=state.state,
         comment=comment,
     ))
-    db.commit()
+    db.session.commit()
